@@ -1,0 +1,36 @@
+[Unit]
+Description=TN Tenders mirror — continuous text extraction + FTS indexing
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/tender
+ExecStart=%h/projects/tender/.venv/bin/python %h/projects/tender/scripts/extract_loop.py
+Restart=on-failure
+RestartSec=120
+Nice=10
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch
+
+# Memory budget. This is the unit that took the box down on 2026-08-15: it
+# reached 6.7GB resident with a 11.2GB peak (systemd still reports
+# MemoryPeak=12102848512) on a 15GB machine, which is what starved the web
+# frontend into its wedge. Nice=10 and IOSchedulingClass=idle above make it
+# yield CPU and disk, but neither of those bounds memory, and memory is what
+# actually broke.
+#
+# The legitimate requirement is one document at a time: pdf2image rasterises a
+# scanned PDF and Tesseract reads it, which is hundreds of megabytes to low
+# gigabytes for a big multi-page scan. MemoryHigh=2G covers that and throttles
+# with reclaim pressure instead of killing, so an unusually large document gets
+# slower rather than lost. MemoryMax=4G is a hard stop at roughly a third of the
+# runaway peak and a quarter of the box — comfortably above any single-document
+# need, far below "can take down the machine". Restart=on-failure with
+# RestartSec=120 above already covers an OOM kill (SIGKILL counts as a failure),
+# and the loop resumes from database state, so the cost of hitting this ceiling
+# is two minutes and no lost work.
+MemoryHigh=2G
+MemoryMax=4G
+
+[Install]
+WantedBy=default.target

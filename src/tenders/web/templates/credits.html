@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Credits — TN Tenders Mirror{% endblock %}
+{% block description %}Attributions for the artwork used on TN Tenders Mirror.{% endblock %}
+{% block content %}
+
+<nav class="crumbs"><a href="/">Dashboard</a> / <span>Credits</span></nav>
+
+<section class="hero">
+  <h1>Credits</h1>
+  <p class="lead">The pixel artwork on this site is licensed from the Noun Project.
+     Every icon and its creator is listed below.</p>
+</section>
+
+<section>
+  <div class="sechead"><h2>Icons</h2></div>
+  <ul class="credits">
+    <li><span class="credit-ic">{% include "_logo.html" %}</span>
+        <span>Logo (pixel-art whistle) — <b>nakals</b> from the Noun Project</span></li>
+    <li><span class="credit-ic">{{ icon('download') }}</span>
+        <span>Download icon — <b>Aiwanz D</b> from the Noun Project</span></li>
+    <li><span class="credit-ic">{{ icon('view') }}</span>
+        <span>View icon — <b>Color Combo</b> from the Noun Project</span></li>
+    <li><span class="credit-ic">{{ icon('moon') }}</span>
+        <span>Moon (dark mode) — <b>Linkdestypee</b> from the Noun Project</span></li>
+    <li><span class="credit-ic">{{ icon('sun') }}</span>
+        <span>Sun (light mode) — <b>nakals</b> from the Noun Project</span></li>
+    <li><span class="credit-ic">{{ icon('search') }}</span>
+        <span>Search icon — <b>Filippo Lessio</b> from the Noun Project</span></li>
+  </ul>
+</section>
+{% endblock %}

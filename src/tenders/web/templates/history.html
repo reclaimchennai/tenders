@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_macros.html" import org_chips %}
+{% from "_icons.html" import icon %}
+{% block title %}History — Suspicious tenders — TN Tenders Mirror{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <h1>{{ icon('flag') }} History — short-window tenders</h1>
+  <p class="lead">Past tenders whose time from publication to bid-closing was under
+     24 hours — already closed. A short window can be a sign of a pre-arranged bid.</p>
+</section>
+
+<section>
+  <div class="sechead"><h2>Closed suspicious tenders</h2>
+    <span class="count">{{ "{:,}".format(rows|length) }} flagged</span></div>
+  {% if rows %}
+  <ul class="results">
+    {% for s in rows %}
+    <li class="card card-flag">
+      <a class="card-title" href="/tender/{{ s.tender_id }}">{{ s.short_name or headline(s) }}</a>
+      <span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>
+      {{ org_chips(s.organisation_chain) }}
+      <div class="card-meta">
+        {% if s.tender_value_num %}<span class="val">{{ s.tender_value_num|inr }}</span>{% endif %}
+        {% if s.location %}<span>{{ icon('pin') }} {{ s.location|pretty }}</span>{% endif %}
+        <span>Published {{ s.published_date|daytime }}</span>
+        <span>{{ closing_line(s.closing_date) }}</span>
+        <span class="tid">{{ s.tender_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="empty">No past short-window tenders recorded yet.</p>{% endif %}
+</section>
+{% endblock %}

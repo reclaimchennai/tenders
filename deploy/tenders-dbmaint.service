@@ -1,0 +1,32 @@
+[Unit]
+Description=TN Tenders mirror — WAL guard and integrity report for the archive database
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/tender
+# Reports db/wal/shm sizes, runs PRAGMA quick_check, and truncates the WAL only
+# if it has grown past the threshold. It never repairs, vacuums or deletes: on
+# a quick_check that is not "ok" it logs EMERGENCY and exits 1 with the database
+# untouched, because this archive holds documents the portal itself has already
+# deleted and an automatic "fix" would overwrite the only copy of the evidence.
+# A non-zero exit is therefore a real alarm and is meant to leave the unit in
+# `systemctl --user list-units --failed`.
+ExecStart=%h/projects/tender/.venv/bin/python %h/projects/tender/scripts/db_maint.py
+# quick_check measures 8s on the current 1.9GB database when the box is idle.
+# The ceiling below covers that growing several-fold, plus up to three
+# checkpoint attempts 15s apart, plus the truncation of a WAL that has genuinely
+# run away — the 44GB one from 2026-08-15 would have taken minutes to write back.
+# It exists only so a job that has hung cannot sit on the database forever.
+TimeoutStartSec=30min
+# Yields to live capture, like every other batch unit here. The checkpoint reads
+# and rewrites up to a gigabyte, and the scraper shares this disk and has portal
+# politeness delays it must keep meeting; nothing in this unit is urgent enough
+# to be worth a missed document.
+Nice=10
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch
+# The work is one SQLite connection doing a page scan and a checkpoint, both of
+# which stream — neither builds a large structure in memory. Anything near this
+# limit means a bug, and this job must never be the process that pushes a box
+# recovering from an out-of-space incident back into one.
+MemoryMax=512M

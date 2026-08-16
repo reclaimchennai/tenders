@@ -1,0 +1,30 @@
+[Unit]
+Description=Poll the TN Tenders web frontend every 2 minutes and heal it if wedged
+
+[Timer]
+# 2 minutes bounds an outage to ~2.5 min of detection plus the restart, against
+# the "unknown period" the 2026-08-15 wedge went unnoticed for. Cheaper than it
+# looks: the probe hits /healthz, whose payload is memoised for 60s, so a poll
+# costs one HTTP round trip and usually no database work at all.
+OnBootSec=2min
+OnUnitActiveSec=2min
+
+# Persistent=false, unlike the daily jobs. A missed liveness check is worthless
+# information — it asks "is the site up *now*", and a run fired at boot to catch
+# up for a window when the machine was off would only probe a service that has
+# not finished starting yet, fail three times, and restart it during boot. The
+# question is only ever worth asking in the present tense, and OnBootSec already
+# covers the post-boot case with room for the web app to come up first.
+Persistent=false
+
+# Loose accuracy so systemd may coalesce this with other timer wakeups rather
+# than waking the box on its own schedule. Seconds of jitter are irrelevant to a
+# 2-minute poll and the machine gets to stay asleep between them.
+AccuracySec=20s
+
+[Install]
+# timers.target, matching tenders-watch.timer and tenders-captcha-train.timer.
+# This is the target `systemctl --user enable` expects for a timer; putting a
+# timer in default.target works by accident rather than by design and would be
+# the only one of the three doing so.
+WantedBy=timers.target

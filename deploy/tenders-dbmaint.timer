@@ -1,0 +1,24 @@
+[Unit]
+Description=Daily WAL truncation and integrity check for the TN Tenders archive
+
+[Timer]
+# 04:30 IST-ish quiet hour, and deliberately not 03:15 — that is when
+# tenders-captcha-train.timer fires a ~30 minute 4-thread retrain, and a full
+# page scan of a 1.9GB database competing with it on the same disk would make
+# both slow for no reason. An hour and a quarter is comfortably clear of it.
+OnCalendar=*-*-* 04:30:00
+
+# Persistent=true, unlike the healthcheck timer. This one is not asking a
+# present-tense question: if the box was off at 04:30 then the integrity check
+# genuinely did not happen and the WAL genuinely was not examined, and both are
+# still worth doing late. Catching up is the correct behaviour for maintenance.
+Persistent=true
+
+# Spread the start so a catch-up run after a reboot does not land at the same
+# instant as everything else systemd is starting.
+RandomizedDelaySec=600
+
+[Install]
+# timers.target, matching tenders-watch.timer and tenders-captcha-train.timer —
+# the target `systemctl --user enable` expects for a timer unit.
+WantedBy=timers.target

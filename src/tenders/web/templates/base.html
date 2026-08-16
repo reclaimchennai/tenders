@@ -1,0 +1,116 @@
+{% from "_icons.html" import icon -%}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    /* Apply theme before first paint to avoid a flash. */
+    (function(){try{var t=localStorage.getItem('theme');
+      if(!t){t=window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}
+      document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+  </script>
+  <title>{% block title %}TN Tenders Mirror{% endblock %}</title>
+  <meta name="description" content="{% block description %}Public archive of Tamil Nadu government e-procurement tenders and documents — preserved before the official portal deletes them. Full-text search, live tenders, and procurement watch.{% endblock %}">
+
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico?v={{ css_v }}" sizes="any">
+  <link rel="icon" type="image/gif" href="/static/favicon.gif?v={{ css_v }}">
+  <link rel="apple-touch-icon" href="/static/icon-192.png">
+  <link rel="manifest" href="/static/manifest.json">
+  <link rel="stylesheet" href="/static/style.css?v={{ css_v }}">
+
+  {# Open Graph / social share card. `og` (set by the tender page) overrides the
+     browser-facing title and description: a flagged tender is announced as such
+     when shared, while the <title> in the tab stays plain. No twitter:site or
+     twitter:creator — this project has no account to point at. #}
+  {%- set og_title = og.title if og else self.title() %}
+  {%- set og_desc = og.description if og else self.description() %}
+  {%- set og_img = og.image if og else "https://tenders.reclaimchennai.city/static/og.png?v=" ~ css_v %}
+  {%- set og_alt = og.alt if og else "TN Tenders Mirror — Tamil Nadu government tender archive" %}
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TN Tenders Mirror">
+  <meta property="og:title" content="{{ og_title }}">
+  <meta property="og:description" content="{{ og_desc }}">
+  <meta property="og:url" content="https://tenders.reclaimchennai.city{{ request.url.path }}">
+  <meta property="og:image" content="{{ og_img }}">
+  <meta property="og:image:secure_url" content="{{ og_img }}">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="{{ og_alt }}">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ og_title }}">
+  <meta name="twitter:description" content="{{ og_desc }}">
+  <meta name="twitter:image" content="{{ og_img }}">
+  <meta name="twitter:image:alt" content="{{ og_alt }}">
+  <meta name="theme-color" content="#0d0f14">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">
+      {% include "_logo.html" %}
+      <span class="brand-text">TN&nbsp;Tenders&nbsp;<span>Mirror</span></span>
+    </a>
+    <nav>
+      <a class="nav-text" href="/">Dashboard</a>
+      <a class="nav-ic" href="/browse" title="Search" aria-label="Search">{{ icon('search') }}</a>
+      {# One Saved entry for both lists. A second icon for saved *searches* was
+         a second place to look for the same idea, and the searches were the
+         half nobody found. #}
+      <a class="nav-ic" href="/bookmarks" title="Saved" aria-label="Saved">{{ icon('bookmark') }}</a>
+      <button class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle theme">
+        {{ icon('moon') }}{{ icon('sun') }}
+      </button>
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  {% block content %}{% endblock %}
+</main>
+{# The icons the browser-rendered lists and toasts need, drawn by the same macro
+   as every other icon on the site. A <template> is inert, so this costs a parse
+   and nothing else — and it keeps _icons.html the only place an icon is drawn
+   rather than having a second copy live as a string inside a .js file. #}
+<template id="ic-lib">
+  <span data-ic="bell">{{ icon('bell') }}</span>
+  <span data-ic="bookmark">{{ icon('bookmark') }}</span>
+  <span data-ic="alert">{{ icon('alert') }}</span>
+</template>
+<script>
+  /* Theme toggle */
+  (function(){
+    var btn = document.querySelector('.theme-toggle');
+    if(!btn) return;
+    btn.addEventListener('click', function(){
+      var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light':'dark';
+      var next = cur === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', next);
+      try{ localStorage.setItem('theme', next); }catch(e){}
+    });
+  })();
+  /* PWA: register service worker (installable, network pass-through, push) */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
+  }
+</script>
+{# saved.js is unconditional: saving a search is a local, permission-free act
+   and must work on a mirror with no push configured. notify.js only adds the
+   delivery half on top of it. #}
+<script src="/static/saved.js?v={{ css_v }}" defer></script>
+{% if push_enabled %}<script src="/static/notify.js?v={{ css_v }}" defer></script>{% endif %}
+{% block scripts %}{% endblock %}
+<footer class="site-footer">
+  <div class="wrap">
+    <p>Independent public-interest archive of Tamil Nadu government e-procurement
+       tenders. The official portal deletes tender documents after closing; this
+       mirror preserves them so the public can scrutinise procurement.</p>
+    <p class="muted">Data sourced from tntenders.gov.in (public records). Original
+       documents are reproduced as published.</p>
+    <p class="muted"><a href="/credits">Credits</a></p>
+  </div>
+</footer>
+</body>
+</html>

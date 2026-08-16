@@ -1,0 +1,55 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# ---------------------------------------------------------------------------
+# Everything under data/ is runtime state, and this repository is public.
+#
+# Deny-by-default, not a list of known-bad paths. The list version of this file
+# enumerated tenders.db, docs/, html/, captcha/ and secrets/ — and silently did
+# not cover data/backups/, which holds *complete copies of the database*,
+# including the push_subscriptions table (real subscriber endpoints, i.e. other
+# people's personal data). 2.5 GB of it was staged and ready to be pushed to a
+# public repo. Enumerating what to hide fails the moment a new directory
+# appears; enumerating what to *keep* fails safe instead.
+#
+# Nothing in data/ belongs in git: config.ensure_dirs() recreates the tree, and
+# the archive itself is rebuilt by scraping. If something here ever does need
+# tracking, add a targeted `!data/thing` exception below and say why.
+# ---------------------------------------------------------------------------
+data/
+
+# The push identity. Called out separately from the blanket rule above because
+# it is the one file whose exposure cannot be undone by deleting a commit: it
+# is the credential that lets a server push notifications to every subscriber's
+# device, and rotating it invalidates every existing subscription.
+data/secrets/
+
+# ---------------------------------------------------------------------------
+# Internal deployment runbook — not published.
+#
+# ARCHITECTURE.md documents *this specific installation*: the production
+# server's IP address, home-directory paths, the hostname, the uid the units
+# run under, and the username of a second person who works on the wider
+# cluster. None of that helps anyone self-host their own mirror, and one of the
+# names in it is not even ours to publish. The public equivalent is README.md
+# plus docs/SELF-HOSTING.md, which describe the system without describing the
+# machine it happens to run on.
+#
+# If a design-rationale document is ever wanted in the repo, write it fresh
+# rather than scrubbing this one — a redaction pass over a runbook is exactly
+# the kind of thing that misses a line.
+# ---------------------------------------------------------------------------
+ARCHITECTURE.md
+
+# Local tooling config, not project code. settings.local.json in particular
+# accumulates absolute paths from whatever machine it was used on — this one
+# had a personal Downloads path in it — and the ".local." in the name says it
+# was never meant to be shared.
+.claude/
+
+# Obsolete macOS launchd agent with a hardcoded personal path baked into it
+# (/Users/<someone>/Desktop/...). Superseded by deploy/*.service, which use
+# systemd's %h so they work for whoever installs them.
+scripts/com.tenders.forward.plist

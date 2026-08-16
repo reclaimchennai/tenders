@@ -1,0 +1,28 @@
+[Unit]
+Description=TN Tenders mirror — match saved searches & bookmark alerts, send notifications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/tender
+# A timer and not a step in the capture cycle, deliberately. A cycle runs for
+# hours and its pause is 900s, so bolting this to it would make notification
+# latency depend on how long enumeration happens to take — and, worse, an
+# outbound push to a service that hangs would delay document capture, which is
+# the one thing on this box that cannot be repeated later. As its own unit it
+# also cannot take the scraper down with it when it fails.
+#
+# 5 minutes matches the cadence of the thing that actually discovers new
+# tenders: [latest].poll_interval_s. Checking more often would only re-ask a
+# question whose answer cannot have changed.
+#
+# The work is pure local SQLite plus a handful of HTTPS requests to push
+# services; it never touches the portal, so it costs the politeness budget
+# nothing. It still yields to the scraper, which shares this disk.
+ExecStart=%h/projects/tender/.venv/bin/tenders-watch-run
+Nice=5
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

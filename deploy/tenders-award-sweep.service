@@ -1,0 +1,41 @@
+[Unit]
+Description=TN Tenders — retrospective Award-of-Contract document sweep
+After=network.target
+# These MUST live in [Unit]. They spent their first weeks in [Service], where
+# systemd silently ignores them ("Unknown key name 'StartLimitIntervalSec' in
+# section 'Service'"), so this unit had no restart rate limiting at all. That
+# was survivable while nothing restarted it; it stopped being survivable when
+# MemoryMax below made a kill-and-restart a routine, expected event. Without a
+# limit, a genuinely broken sweep would restart every 180s forever and look
+# like it was working.
+StartLimitIntervalSec=1h
+StartLimitBurst=10
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/tender
+ExecStart=%h/projects/tender/.venv/bin/python %h/projects/tender/scripts/award_sweep.py
+Restart=on-failure
+RestartSec=180
+Nice=10
+IOSchedulingClass=idle
+
+# Memory budget. Measured on 2026-08-15: 2.3GB resident, 6.8GB peak. For a job
+# that fetches one AOC PDF at a time and parses a comparative statement out of
+# it, 6.8GB is not a requirement, it is a leak accumulating across a ~30 hour
+# run.
+#
+# MemoryHigh=2G is just under the current resident size so the kernel starts
+# reclaiming before the growth becomes the box's problem; MemoryMax=4G is the
+# hard stop. Being killed at the ceiling is close to free here, and by design:
+# run_enrich stamps award_probed_at on a miss as well as a hit, so a restart
+# never re-probes a tender, and batches are bounded at 200 so a kill costs at
+# most one batch. Restart=on-failure with RestartSec=180 above then turns the
+# ceiling into exactly what it should be — a periodic recycle of a leaky
+# long-running job — bounded by the StartLimit* pair in [Unit] above so a
+# genuinely broken sweep stops rather than flapping.
+MemoryHigh=2G
+MemoryMax=4G
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% from "_pagination.html" import pager %}
+{% from "_macros.html" import org_chips %}
+{% from "_icons.html" import icon %}
+{% block title %}Search — TN Tenders Mirror{% endblock %}
+
+{# A repeatable filter. The <select multiple> *is* the field — multiselect.js
+   hides it and drives it from the chip UI, so the form submits the same
+   ?name=A&name=B either way and the no-script page keeps a working control
+   rather than a broken one. Labels are prettified, values never are: the value
+   has to stay the string the database holds. #}
+{% macro msfilter(id, label, name, options, selected, placeholder) %}
+<div class="rf rf-ms" data-ms data-placeholder="{{ placeholder }}">
+  <label for="{{ id }}">{{ label }}</label>
+  <select id="{{ id }}" name="{{ name }}" multiple size="4">
+    {% for o in options %}
+    <option value="{{ o|e }}"{% if o in selected %} selected{% endif %}>{{ o|pretty }}</option>
+    {% endfor %}
+  </select>
+  <span class="ms-hint">Select none for any</span>
+</div>
+{% endmacro %}
+
+{# Alert-me-about-this-search control.
+
+   It wears the *bell*, not the bookmark. The two icons name two different
+   promises and this site keeps both: the bookmark on a tender page saves a row
+   into this browser and tells the server nothing, while this button asks a
+   server to push to this device when a new tender matches. They had been the
+   same glyph, which made the quiet one and the loud one indistinguishable.
+
+   Behaviour matches the per-tender bell on tender.html: bell + label before,
+   bell alone and ringing after, with the label collapsing on the click to
+   cover the permission prompt and the subscribe round-trip.
+
+   CONTRACT — saved.js/multiselect.js bind to this:
+
+     * selector  `button.watchbtn[data-watch-filters]` (one per results section)
+     * data      `data-watch-filters` — the exact querystring of the search on
+                 screen, the same string the pager and infinite scroll use, so
+                 re-running the watch later is a GET of `/browse?<that>`
+     * event     `tender:watch` on the button, bubbling, cancelable,
+                 `detail = {filters, watching}` where `watching` is the state
+                 being asked for. Call `preventDefault()` to reject it (e.g. a
+                 failed subscribe) and the button stays as it was.
+     * state     `window.tenderWatch.set(on)` paints pressed/unpressed without
+                 firing the event — for restoring state on load;
+                 `window.tenderWatch.busy(on)` runs the label collapse while an
+                 answer is outstanding. #}
+{% macro watch_button(qs) %}
+<button type="button" class="watchbtn" data-watch-filters="{{ qs }}"
+        aria-pressed="false"
+        aria-label="Alert me when a new tender matches this search"
+        data-label-on="Alerts are on for this search — activate to turn them off"
+        >{{ icon('bell') }}<span class="bell-lbl">Alert me about new matches</span></button>
+{% endmacro %}
+
+{% block content %}
+
+<section class="hero">
+  <h1>Search tenders &amp; documents</h1>
+  <p class="lead">Full-text search across tender metadata and the contents of
+     every captured document.</p>
+
+  {# The #results fragment on the action is what makes Search land on the answer.
+     A GET form keeps its action's fragment and replaces only the query, so the
+     jump costs no JavaScript at all; the results section clears the sticky
+     header via the existing section[id] scroll-margin. #}
+  <form class="searchpanel" method="get" action="/browse#results">
+    <div class="searchrow">
+      <div class="searchinput">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path>
+        </svg>
+        {# Autofocus only on an untouched page. After a search it fought the
+           result the user just asked for: the field took focus on load, the
+           phone keyboard came up over the answer, and the page was scrolled
+           back to the box they had already finished with. #}
+        <input type="text" name="q" value="{{ q|e }}"
+               placeholder="Search by location, tender ID, or keyword…"
+               {% if not searched %}autofocus{% endif %}>
+      </div>
+      <button class="btn-primary" type="submit">Search</button>
+    </div>
+
+    <details class="adv" {% if advanced_open %}open{% endif %}>
+      <summary>
+        <span class="adv-link">{{ icon('sliders') }} Advanced search</span>
+        <span class="adv-caret">{{ icon('chevron') }}</span>
+      </summary>
+      <div class="refine">
+        {{ msfilter('f-org', 'Organisation', 'org', orgs, org, 'All departments') }}
+        {{ msfilter('f-type', 'Tender type', 'tender_type', tender_types, tender_type, 'Any type') }}
+        {{ msfilter('f-cat', 'Category', 'category', categories, category, 'Any category') }}
+        {{ msfilter('f-pcat', 'Product category', 'product_category', product_categories, product_category, 'Any product category') }}
+        <div class="rf rf-date">
+          <label for="f-tid">Tender ID</label>
+          <input type="text" id="f-tid" name="tender_id" value="{{ tender_id|e }}" placeholder="2026_XXX_…">
+        </div>
+        <div class="rf rf-date">
+          <label for="f-ref">Reference number</label>
+          <input type="text" id="f-ref" name="ref_number" value="{{ ref_number|e }}">
+        </div>
+        <div class="rf rf-date">
+          <label for="f-pin">Pincode</label>
+          <input type="text" id="f-pin" name="pincode" value="{{ pincode|e }}" inputmode="numeric">
+        </div>
+        <div class="rf rf-date">
+          <label for="f-vmin">Value min ₹</label>
+          <input type="number" id="f-vmin" name="value_min" value="{{ value_min|e }}" min="0">
+        </div>
+        <div class="rf rf-date">
+          <label for="f-vmax">Value max ₹</label>
+          <input type="number" id="f-vmax" name="value_max" value="{{ value_max|e }}" min="0">
+        </div>
+        {{ msfilter('f-foc', 'Form of contract', 'form_of_contract', forms_of_contract, form_of_contract, 'Any form') }}
+        {{ msfilter('f-pm', 'Payment mode', 'payment_mode', payment_modes, payment_mode, 'Any mode') }}
+        <div class="rf rf-date">
+          <label for="f-from">Published from</label>
+          <input type="date" id="f-from" name="date_from" value="{{ date_from|e }}">
+        </div>
+        <div class="rf rf-date">
+          <label for="f-to">Published to</label>
+          <input type="date" id="f-to" name="date_to" value="{{ date_to|e }}">
+        </div>
+        <div class="rf rf-org">
+          <label for="f-scope">Look in</label>
+          <select id="f-scope" name="scope">
+            <option value="all"  {% if scope=='all'  %}selected{% endif %}>Tenders &amp; documents</option>
+            <option value="meta" {% if scope=='meta' %}selected{% endif %}>Tenders only</option>
+            <option value="docs" {% if scope=='docs' %}selected{% endif %}>Inside documents</option>
+          </select>
+        </div>
+      </div>
+      {% set crit_labels = {'two_stage':'Two Stage Bidding','nda':'NDA Tenders','preferential':'Preferential Bidding','gte':'GTE','ite':'ITE / TPS','fee_exempt':'Tender Fee Exemption','emd_exempt':'EMD Exemption','withdrawal':'Withdrawal Allowed'} %}
+      <div class="crit-group">
+        <span class="crit-title">Selection criteria</span>
+        <div class="crit-boxes">
+          {% for key, label in crit_labels.items() %}
+          <label class="rf-check">
+            <input type="checkbox" name="criteria" value="{{ key }}" {% if key in criteria %}checked{% endif %}>
+            {{ label }}
+          </label>
+          {% endfor %}
+          <label class="rf-check">
+            <input type="checkbox" name="captured" value="yes" {% if captured=='yes' %}checked{% endif %}>
+            Has captured documents
+          </label>
+        </div>
+        <a class="rf-clear" href="/browse">Reset all filters</a>
+      </div>
+    </details>
+  </form>
+</section>
+
+{# id="results" is the form action's fragment target, so it goes on the section
+   and not on the list: landing on the list would scroll straight past the count
+   the search was asked to produce. The docs section inherits the id when it is
+   the only section on the page. #}
+{% if scope != 'docs' %}
+<section id="results">
+  <div class="sechead"><h2>Tenders</h2>
+    {% if pag_t %}<span class="count">{{ "{:,}".format(pag_t.total) }} found</span>{% endif %}
+    {{ watch_button(qs) }}</div>
+  {% if tenders %}
+    <ul class="results" id="results-list" data-qs="{{ qs }}" data-next="2"
+        data-size="{{ page_size }}" data-total="{{ total_t }}">
+      {% include "_tender_cards.html" %}
+    </ul>
+    <div id="sentinel"></div>
+    <div class="loadmore hidden" id="loadmore"><span class="spinner"></span> Loading more…</div>
+    <div class="scroll-end hidden" id="scroll-end">— end of results —</div>
+  {% else %}<p class="empty">No tenders match these filters.</p>{% endif %}
+</section>
+{% endif %}
+
+{% if docs is not none %}
+<section {% if scope == 'docs' %}id="results"{% endif %}>
+  <div class="sechead"><h2>Inside documents</h2>
+    {% if pag_d %}<span class="count">{{ "{:,}".format(pag_d.total) }} found</span>{% endif %}</div>
+  {% if docs %}
+    <ul class="results">
+    {% for d in docs %}
+      <li class="card">
+        <a class="card-title" href="/tender/{{ d.tender_id }}">{{ d.filename }}</a>
+        {% if d.status == 'captured' %}<a class="dl" href="/doc/{{ d.document_id }}" style="margin-left:10px">download</a>{% endif %}
+        <div class="card-meta"><span>{{ d.title }}</span></div>
+        {{ org_chips(d.organisation_chain) }}
+        {# snip_kind says what the excerpt is. Only 'text' is the passage that
+           matched; the other two are labelled so a reader is never shown the
+           opening of a document as if it were the hit. #}
+        {% if d.snip_kind == 'filename' %}
+          <div class="snip"><span class="snip-why">matched in the filename</span></div>
+        {% elif d.snip %}
+          <div class="snip">
+            {% if d.snip_kind == 'opening' %}<span class="snip-why">opening of document</span>{% endif %}
+            {{ d.snip|safe }}</div>
+        {% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+    {{ pager(pag_d, "/browse?" ~ qs) }}
+  {% else %}<p class="empty">No matches inside documents (only captured documents are full-text searchable).</p>{% endif %}
+</section>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/multiselect.js?v={{ css_v }}" defer></script>
+<script src="/static/browse.js?v={{ css_v }}" defer></script>
+{% endblock %}

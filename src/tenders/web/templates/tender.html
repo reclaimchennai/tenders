@@ -1,0 +1,322 @@
+{% extends "base.html" %}
+{% from "_macros.html" import org_chips %}
+{% from "_icons.html" import icon, missing_icon, file_icon %}
+{% from "_share.html" import share_row %}
+{% set site = "https://tenders.reclaimchennai.city" %}
+{% block title %}{{ t.short_name or t.title or t.tender_id }} — TN Tenders Mirror{% endblock %}
+{% block description %}{{ (t.title or t.tender_id) }}{% if t.organisation_chain %} · {{ t.organisation_chain.split('||')[0]|pretty }}{% endif %}{% if t.tender_value_raw %} · ₹{{ t.tender_value_raw }}{% endif %}. Archived on TN Tenders Mirror.{% endblock %}
+{% block content %}
+
+<nav class="crumbs"><a href="/">Dashboard</a> / <a href="/browse">Search</a> / <span>{{ t.tender_id }}</span></nav>
+
+<article class="tender">
+  {# Cancellation is stated in this archive's own words, not the department's.
+     `cancellation_note` carries the corrigendum's free-text title, which reads
+     "Lodging of Tender" or "Corrigendum 9" often enough that printing it as the
+     headline would misinform. The authoritative fact is the corrigendum *type*
+     — "Cancellation of Tender" — which is what the record was matched on, so
+     that is what the seal asserts; the department's own wording appears below
+     it, labelled as theirs. #}
+  {# Cancelled and awarded are one if/elif and not two blocks, so the page has
+     no way to stamp both on the same tender. Cancellation wins, matching
+     dashboard.tender_state's precedence and award_panel's own refusal to build
+     a panel for a cancelled tender. #}
+  {% if t.cancelled_at %}
+  <aside class="seal" role="note">
+    <p class="seal-stamp">{{ icon('cross') }} CANCELLED</p>
+    <div class="seal-body">
+      <p>The department published a <b>Cancellation of Tender</b> corrigendum for
+         this tender on the official portal. The record and its documents are kept
+         here as published.</p>
+      <p class="seal-meta">
+        {% if t.cancellation_note %}Department’s wording: “{{ t.cancellation_note }}”.{% endif %}
+        Recorded by this archive on {{ t.cancelled_at|day }}.
+      </p>
+    </div>
+  </aside>
+  {% elif award %}
+  <aside class="seal seal-award" role="note">
+    <p class="seal-stamp">{{ icon('tick') }} AWARDED</p>
+    <div class="seal-body">
+      <p>{% if award.winner %}This contract was awarded to
+         <b>{{ award.winner }}</b>{% else %}The department published an
+         <b>award-of-contract</b> document for this tender{% endif %}{% if award.value %},
+         at <b>{{ award.value }}</b>{% endif %}.</p>
+      <p class="seal-meta">
+        {% if award.date %}AOC date {{ award.date }} — the day the department
+        published the award document, which can be long after bidding closed.{% endif %}
+        {% if award.signatory %} Signed by {{ award.signatory }}.{% endif %}
+      </p>
+    </div>
+  </aside>
+  {% endif %}
+  <h1>{{ t.title or t.tender_id }}</h1>
+  {{ org_chips(t.organisation_chain) }}
+  {% set st = tender_state(t.closing_date, t.published_date, t.cancelled_at, t.awarded_at) %}
+  <div class="badges">
+    <span class="badge {{ st.css }}"{% if st.hint %} title="{{ st.hint }}"{% endif %}>{{ st.label }}</span>
+    {# `tenders.source` is not shown. It describes how *this archive* obtained
+       the record, and beside the tender's own status a badge reading "scraped"
+       was read as a claim about the tender — that the procurement itself was
+       somehow irregular. The column stays; it is simply not a fact about the
+       tender, so it is not on the tender's page. #}
+    <span class="badge">{{ t.status }}</span>
+    {# "Est." is not decoration: beside an award badge an unqualified ₹ figure
+       reads as the amount paid, which is a different number entirely. #}
+    {% if t.tender_value_raw and t.tender_value_raw not in ('NA','Nil') %}<span class="badge">{{ 'Est. ' if award }}₹ {{ t.tender_value_raw }}</span>
+    {% elif t.tender_type %}<span class="badge">{{ t.tender_type }}</span>{% endif %}
+    {% if award and award.value %}<span class="badge b-award">Won {{ award.value }}</span>{% endif %}
+    {% if t.closing_date %}<span class="badge">{{ closing_line(t.closing_date) }}</span>{% endif %}
+  </div>
+
+  {% if flag_hours %}
+  <div class="redflag">
+    <p class="redflag-title">{{ icon('alert') }} Red flag — abnormally short bidding window</p>
+    <p>Only {{ "%.1f"|format(flag_hours) }} hours between publication and bid closing.
+       No genuine bidder can prepare a submission in that time, which is a classic
+       sign of a pre-arranged bid. <a href="/history">See other short-window tenders</a>.</p>
+  </div>
+  {% endif %}
+
+  {# The portal buries these at the bottom of a 60-row table, which is where
+     this page had them too: the three dates that decide whether a tender can
+     still be bid on, and the one that says who won, were below every EMD
+     percentage and multi-currency flag on the record. They are the reason
+     anyone opens the page, so they are above everything except the alarms.
+     Rows are built server-side (dates.critical_dates) and a stage the portal
+     wrote as "NA" produces no row, so this never renders empty scaffolding —
+     on a register-only tender the whole section is absent. #}
+  {% if crit_dates %}
+  <section class="critdates">
+    <h2 class="cd-head">{{ icon('clock') }} Critical dates</h2>
+    {# A timeline, not a table. These rows are one thing happening after
+       another, and the old two-column grid printed a window as
+       "start → end" on one line, which asked the reader to work out which of
+       the two dates was the deadline — the only one most people came for.
+       Each stage now gets its own marker, its name, and one date aligned
+       right; a window is stated as its *deadline*, with the day it opened
+       demoted to a sub-line, because "when can I still bid until" and "when
+       did this open" are not equally urgent facts. The connector line is drawn
+       in CSS off .cd-item, so it never needs an empty element to hang on. #}
+    <ol class="cd-line">
+      {% for d in crit_dates %}
+      {%- set l = d.label|lower -%}
+      {%- if 'publish' in l %}{% set mark = 'tick' %}
+      {%- elif 'open' in l %}{% set mark = 'calendar' %}
+      {%- elif 'result' in l or 'award' in l %}{% set mark = 'flag' %}
+      {%- else %}{% set mark = 'clock' %}{% endif -%}
+      <li class="cd-item{{ ' cd-minor' if d.minor }}">
+        <span class="cd-mark" aria-hidden="true">{{ icon(mark) }}</span>
+        {# Past tense once the date has gone by. "Bid submission ends" on a
+           tender that closed eight months ago describes a deadline the reader
+           could still meet; this archive's rows are overwhelmingly history and
+           should read as history. #}
+        <span class="cd-label">{{ d.label }}{% if d.end %}{{ ' ended' if d.past else ' ends' }}{% endif %}</span>
+        <span class="cd-when">
+          <span class="cd-date">{{ d.end or d.start }}</span>
+          {%- if d.end and d.start %}<span class="cd-sub">opened {{ d.start }}</span>{% endif %}
+          {%- if d.rel %}<span class="cd-rel">{{ d.rel }}</span>{% endif %}
+          {%- if d.note %}<span class="cd-note">{{ d.note }}</span>{% endif %}
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+  </section>
+  {% endif %}
+
+  {{ share_row('/tender/' ~ t.tender_id, t.short_name or t.title or t.tender_id, t.tender_id, t.closing_date) }}
+
+  {# Two separate decisions, deliberately worded as two. Bookmarking (above)
+     keeps the tender in this browser and tells this site nothing. Alerting
+     registers this one tender id with the server, because push cannot work any
+     other way, and the sentence says so before the button is pressed rather
+     than after. #}
+  {# The visible label collapses into the bell once alerts are on (see .bell-lbl),
+     so the accessible name is stated on the button rather than left to be read
+     off text that is animating to zero width. #}
+  {% if push_enabled %}
+  <p class="alertrow">
+    <button type="button" class="alertbtn" data-alert-tender="{{ t.tender_id }}"
+            aria-pressed="false" aria-label="Alert me if this tender changes"
+            data-label-on="Alerts are on for this tender — activate to turn them off"
+            >{{ icon('bell') }}<span class="bell-lbl">Alert me if this tender changes</span></button>
+    <span class="alertnote">Corrigenda, deadline changes, cancellation, award, or a
+      re-published document. Sends this tender's id to the server; nothing else.</span>
+  </p>
+  {% endif %}
+
+  {# Award of contract. The two money figures are deliberately given equal
+     weight and different colours: showing only one of them, or showing them in
+     the same style, is how "estimated ₹5 L" quietly becomes "paid ₹9 L". #}
+  {% if award %}
+  <h2 id="award">Award of contract</h2>
+  <div class="award">
+    <div class="aw-money">
+      <div class="aw-fig aw-est">
+        <span class="aw-lab">Department’s estimate</span>
+        <span class="aw-val">{{ award.estimate or '—' }}</span>
+      </div>
+      <div class="aw-fig aw-won">
+        <span class="aw-lab">Awarded for</span>
+        <span class="aw-val">{{ award.value or 'not stated' }}</span>
+        {% if award.value_exact %}<span class="aw-exact">₹{{ award.value_exact }}</span>{% endif %}
+      </div>
+      {% if award.delta %}
+      <div class="aw-fig aw-delta {{ award.delta.css }}">
+        <span class="aw-lab">Difference</span>
+        <span class="aw-val">{{ "%.1f"|format(award.delta.pct) }}%</span>
+        <span class="aw-exact">{{ award.delta.direction }} estimate</span>
+      </div>
+      {% endif %}
+    </div>
+
+    <table class="kv aw-kv">
+      {% if award.winner %}<tr><th>Awarded to</th><td><b>{{ award.winner }}</b></td></tr>{% endif %}
+      {% if award.date %}<tr><th>AOC date</th><td>{{ award.date }}</td></tr>{% endif %}
+      {% if award.ref %}<tr><th>Contract reference</th><td>{{ award.ref }}</td></tr>{% endif %}
+      {% if award.signatory %}<tr><th>Signed by</th><td>{{ award.signatory }}</td></tr>{% endif %}
+    </table>
+
+    {% if award.bidders %}
+    <p class="aw-sub">All bids recorded on the award document</p>
+    <div class="table-scroll">
+      <table class="docs aw-bids">
+        <thead><tr><th>Bidder</th><th>Amount</th><th>Rank</th></tr></thead>
+        <tbody>
+        {% for b in award.bidders %}
+          <tr class="{{ 'aw-l1' if b.is_winner or b.rank == 'L1' }}">
+            <td>{{ b.bidder }}</td>
+            <td class="aw-amt">₹{{ b.amount|inr_exact }}</td>
+            <td class="muted">{{ b.rank or ('L1' if b.is_winner else '') }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if award.docs %}
+    <p class="aw-sub">Award document{{ 's' if award.docs|length != 1 }}</p>
+    <ul class="aw-docs">
+      {% for d in award.docs %}
+      <li>
+        <a href="/view/{{ d.id }}" data-view data-kind="{{ d.kind }}"
+           data-name="{{ d.filename }}" data-download="/doc/{{ d.id }}">{{ d.filename }}</a>
+        <span class="muted">{{ d.byte_size|filesize(d.declared_size) }}</span>
+        <a class="dl-icon" href="/doc/{{ d.id }}"
+           title="Download {{ d.filename }}" aria-label="Download {{ d.filename }}">{{ icon('download') }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# A corrigendum is the portal announcing that a live tender changed — a moved
+     deadline, a re-issued BOQ — which is exactly the kind of mid-flight edit
+     worth being able to see at a glance. #}
+  {% if corrigenda %}
+  <h2>Amendments <span class="count">{{ corrigenda|length }} corrigend{{ 'um' if corrigenda|length == 1 else 'a' }} issued by the department</span></h2>
+  <ol class="corrig">
+    {% for c in corrigenda %}
+    <li>
+      <span class="corrig-n">{{ loop.index }}</span>
+      {% if c.type %}<span class="corrig-type{{ ' corrig-cancel' if c.type == 'Cancellation of Tender' }}">{{ c.type }}</span>{% endif %}
+      {% if c.title and c.title != c.type %}<span class="corrig-title">{{ c.title }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+
+  <h2>Documents</h2>
+  {% if docs %}
+  {# Size moved out of its own column and into the name cell, in brackets after
+     the filename. It was a third of the table's width to print "106 KB", which
+     on a phone squeezed the one column that carries meaning — the filename —
+     until it wrapped over three lines. As a bracketed suffix it reads the way
+     it would be said aloud ("Tendernotice_1.pdf, 107 KB") and gives the name
+     back its room. Both action columns are labelled now: an unlabelled icon
+     column made the reader hover to find out which was which. #}
+  <div class="table-scroll">
+  <table class="docs">
+    <thead><tr><th>Document <span class="th-sub">(size)</span></th><th class="sec-col">Section</th>
+      <th class="act-col">View</th><th class="act-col">Download</th></tr></thead>
+    <tbody>
+    {% for d in docs %}
+      {% set gone = d.status != 'captured' %}
+      <tr>
+        <td class="doc-name">
+          <span class="doc-ft" aria-hidden="true">{{ file_icon(d.filename) }}</span>
+          <span class="doc-fn">{{ d.filename }}</span>
+          {%- set size = d.byte_size|filesize(d.declared_size) %}
+          {%- if size %} <span class="doc-size">({{ size }})</span>{% endif %}
+        </td>
+        <td class="sec-col muted">{{ d.section or '' }}{% if d.description %} — {{ d.description }}{% endif %}</td>
+        <td class="act-col">
+          {# The href is real so the viewer page still works without JS; docview.js
+             intercepts it and opens the same preview in a modal instead. #}
+          {% if d.kind %}
+            {% if gone %}{{ missing_icon('view') }}
+            {% else %}<a class="dl-icon" href="/view/{{ d.id }}" data-view data-kind="{{ d.kind }}"
+                 data-name="{{ d.filename }}" data-download="/doc/{{ d.id }}"
+                 title="View {{ d.filename }}" aria-label="View {{ d.filename }}">{{ icon('view') }}</a>{% endif %}
+          {% endif %}
+        </td>
+        <td class="act-col">
+          {% if gone %}{{ missing_icon('download') }}
+          {% else %}<a class="dl-icon" href="/doc/{{ d.id }}" title="Download {{ d.filename }}" aria-label="Download {{ d.filename }}">{{ icon('download') }}</a>{% endif %}
+        </td>
+      </tr>
+      {# A document quietly re-published mid-bid is the single most valuable
+         thing this archive can catch, so superseded copies are shown next to
+         the live file rather than left to the database. Absent for the
+         overwhelming majority of documents, which have only ever had one
+         version. #}
+      {% if d.versions %}
+      <tr class="ver-row">
+        <td colspan="4">
+          <p class="ver-head">{{ icon('alert') }} Replaced on the portal —
+             {{ d.versions|length }} earlier version{{ '' if d.versions|length == 1 else 's' }} preserved</p>
+          <ol class="vers">
+            {% for v in d.versions %}
+            <li>
+              <span class="ver-when">{% if v.superseded_at %}replaced {{ v.superseded_at|day }}{% else %}earlier{% endif %}</span>
+              <span class="muted">{{ v.byte_size|filesize }}</span>
+              <code class="ver-hash" title="SHA-256 of the superseded file">{{ (v.sha256 or '')[:12] }}</code>
+              <a class="dl-icon" href="/doc/{{ d.id }}?version={{ v.id }}"
+                 title="Download the version replaced on {{ v.superseded_at|day if v.superseded_at else 'an earlier date' }}"
+                 aria-label="Download superseded version of {{ d.filename }}">{{ icon('download') }}</a>
+            </li>
+            {% endfor %}
+            <li class="ver-current"><span class="ver-when">current</span>
+              <span class="muted">{{ d.byte_size|filesize(d.declared_size) }}</span>
+              <code class="ver-hash">{{ (d.sha256 or '')[:12] }}</code></li>
+          </ol>
+        </td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}<p class="empty">No documents recorded.</p>{% endif %}
+
+  <h2>Details</h2>
+  <table class="kv">
+    {% for label, value in t.raw.items() %}
+      {% if value and value not in ('NA','Nil') %}
+      <tr><th>{{ label }}</th><td>{{ value }}</td></tr>
+      {% endif %}
+    {% endfor %}
+  </table>
+
+  {% if t.detail_url %}
+  <p class="muted"><a href="{{ t.detail_url }}" rel="nofollow noopener" target="_blank">View original on tntenders.gov.in {{ icon('arrow') }}</a></p>
+  {% endif %}
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/bookmarks.js?v={{ css_v }}" defer></script>
+<script src="/static/docview.js?v={{ css_v }}" defer></script>
+{% endblock %}

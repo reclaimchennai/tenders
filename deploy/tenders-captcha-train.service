@@ -1,0 +1,21 @@
+[Unit]
+Description=TN Tenders mirror — retrain the captcha-solving CNN from accumulated labels
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/tender
+# Every successful document-download captcha solve is auto-saved as a
+# verified training label (src/tenders/captcha.py:save_verified_label),
+# so this just needs to periodically re-fit the CNN on whatever has
+# accumulated. train() requires >=30 labelled captchas and raises otherwise;
+# `|| true` keeps that a quiet no-op rather than a "failed" unit state.
+# train() also no-ops unless MIN_NEW_LABELS verified labels have arrived since
+# the last run, and only replaces data/captcha/model.pt if the new model beats
+# the deployed one on the same validation split — so firing this nightly is
+# cheap and cannot make the live solver worse.
+ExecStart=/bin/sh -c '%h/projects/tender/.venv/bin/tenders-captcha-train || true'
+# A full retrain is ~30 min of 4-thread CPU. The live scraper shares this box
+# and must keep meeting its politeness delays, so the trainer yields to it.
+Nice=10
+IOSchedulingClass=idle
+CPUSchedulingPolicy=batch

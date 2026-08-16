@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily retrain of the TN Tenders captcha-solving CNN
+
+[Timer]
+OnCalendar=*-*-* 03:15:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

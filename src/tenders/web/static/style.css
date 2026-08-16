@@ -1,0 +1,1144 @@
+/* TN Tenders Mirror — design system
+   Dark, calm, information-dense but uncluttered. One accent colour, clear
+   hierarchy, generous alignment. */
+:root, html[data-theme="dark"]{
+  --bg:#0d0f14; --panel:#151821; --elevated:#1b1f2a; --hover:#202533;
+  --line:#2a2f3b; --line-soft:#21262f;
+  --text:#e8eaed; --muted:#9aa3b4; --faint:#6b7382;
+  --accent:#5b8cff; --accent-hover:#4a7bf0; --accent-soft:rgba(91,140,255,.13);
+  --ok:#34d399; --lost:#f87171; --warn:#fbbf24; --mark:#ffd24a;
+  /* A ringing bell is not a warning, so it does not borrow --warn: the two
+     would then be impossible to re-tune independently, and "you are subscribed"
+     must never start looking like "something is wrong". */
+  --bell:#fbbf24; --bell-soft:rgba(251,191,36,.14);
+  --chip-bg:rgba(255,255,255,.04); --lead-chip-text:#cdddff; --snip:#c2c8d2;
+  --header-bg:rgba(13,15,20,.85);
+  --radius:12px; --radius-sm:9px;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.18);
+  /* Departure board. Every colour it uses is a token, because the board is the
+     one component that has to be legible on two completely different grounds:
+     an unlit panel in the dark theme, an ordinary card in the light one. It was
+     held dark in both on the theory that lamps only read as lamps against an
+     unlit display — but on a #f4f6fa page a black slab reads as a hole punched
+     in the layout, which is what it was reported as, twice. The lamp colours
+     are re-tuned per theme instead. */
+  --board-bg:#0a0c11; --board-head-bg:#0d1016; --board-line:rgba(255,255,255,.08);
+  --board-head-fg:#fbbf24;
+  --flap-hover:#11151c; --flap-text:#e8eaed; --flap-sub:#9aa3b4;
+  --board-shadow:none; --board-bezel:transparent;
+  --board-live:#34d399; --board-soon:#fbbf24; --board-closed:#f87171;
+  --board-none:#98a2b3; --board-award:#5eead4;
+  --board-live-bg:rgba(52,211,153,.14); --board-soon-bg:rgba(251,191,36,.15);
+  --board-closed-bg:rgba(248,113,113,.14); --board-none-bg:rgba(255,255,255,.07);
+  --board-cancel-bg:rgba(248,113,113,.22); --board-award-bg:rgba(94,234,212,.14);
+  --gold:#e0a92e; --gold-amt:#f0b84a;
+  /* Status pills on the page itself (not the board) do follow the theme. */
+  --st-live-fg:#34d399; --st-live-bg:rgba(52,211,153,.12);
+  --st-soon-fg:#fbbf24; --st-soon-bg:rgba(251,191,36,.12);
+  --st-closed-fg:#f87171; --st-closed-bg:rgba(248,113,113,.12);
+  --st-none-fg:#8b93a3; --st-none-bg:rgba(255,255,255,.05);
+  /* 8-bit notched frame, sliced 2px per side. border-image cannot take
+     currentColor, so each theme carries its own red. */
+  --pixel-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23f87171' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
+  --seal-bg:rgba(248,113,113,.09);
+  /* Award green, never the gold used for the estimate — the two figures must
+     not be confusable at a glance. */
+  --award:#34d399; --award-soft:rgba(52,211,153,.11);
+  --award-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%2334d399' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
+}
+html[data-theme="light"]{
+  --bg:#f4f6fa; --panel:#ffffff; --elevated:#eef2f7; --hover:#e9eef5;
+  --line:#d8dee7; --line-soft:#e6eaf0;
+  --text:#16202e; --muted:#566174; --faint:#8590a1;
+  --accent:#2f6bff; --accent-hover:#2257e0; --accent-soft:rgba(47,107,255,.10);
+  --ok:#0a8f5b; --lost:#d64545; --warn:#a9760a; --mark:#ffe066;
+  /* Darkened well past the dark theme's amber: #fbbf24 on white is ~1.7:1 and
+     unreadable as text, and this token colours a label as well as a glyph. */
+  --bell:#a06a05; --bell-soft:rgba(160,106,5,.10);
+  --chip-bg:#eef1f6; --lead-chip-text:#1a47c0; --snip:#3a4453;
+  --header-bg:rgba(255,255,255,.85);
+  --shadow:0 1px 2px rgba(20,30,50,.06), 0 6px 22px rgba(20,30,50,.08);
+  /* In the light theme the board is a card like every other card on the page:
+     the same panel, line and text tokens the search panel and the result cards
+     use, so it sits in the layout instead of on top of it. The status lamps
+     survive the move by being restated as dark-on-tint chips — the same
+     green/amber/red mapping, re-tuned for a light ground, since the dark
+     theme's #34d399 on white is 1.8:1 and unreadable. */
+  --board-bg:var(--panel); --board-head-bg:var(--elevated); --board-line:var(--line);
+  --board-head-fg:#8a5d00;
+  --flap-hover:var(--hover); --flap-text:var(--text); --flap-sub:var(--muted);
+  --board-shadow:var(--shadow); --board-bezel:transparent;
+  --board-live:#0a7f52; --board-soon:#8a5d00; --board-closed:#b3261e;
+  --board-none:#6b7382; --board-award:#0f766e;
+  --board-live-bg:rgba(10,127,82,.11); --board-soon-bg:rgba(170,115,10,.15);
+  --board-closed-bg:rgba(179,38,30,.10); --board-none-bg:#eaeef4;
+  --board-cancel-bg:rgba(179,38,30,.18); --board-award-bg:rgba(15,118,110,.11);
+  /* Gold is the estimate colour, and it only ever appears on a light ground now
+     (the board included), so it darkens to a bronze that can actually be read
+     on white — #e0a92e was 2.4:1 there. The amount is the louder of the two. */
+  --gold:#8a5d00; --gold-amt:#6d4a00;
+  --st-live-fg:#0a7f52; --st-live-bg:rgba(10,143,91,.12);
+  --st-soon-fg:#8a5d00; --st-soon-bg:rgba(170,115,10,.15);
+  --st-closed-fg:#b3261e; --st-closed-bg:rgba(179,38,30,.10);
+  --st-none-fg:#6b7382; --st-none-bg:#eaeef4;
+  --pixel-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23d64545' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
+  --seal-bg:rgba(214,69,69,.07);
+  --award:#0a8f5b; --award-soft:rgba(10,143,91,.09);
+  --award-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%230a8f5b' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
+}
+/* Self-hosted (no CDN — this archive is built to outlive third-party hosts). */
+@font-face{font-family:"Press Start 2P";font-style:normal;font-weight:400;font-display:swap;
+  src:url("/static/PressStart2P-Regular.woff2") format("woff2")}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+/* Anchor jumps must clear the 60px sticky header or they look like a no-op. */
+html{scroll-behavior:smooth}
+:target,section[id],h2[id]{scroll-margin-top:74px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--text);overflow-x:hidden;
+  font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{color:var(--accent-hover)}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+.muted{color:var(--muted)}
+
+/* Header / footer */
+.site-header{position:sticky;top:0;z-index:20;border-bottom:1px solid var(--line);
+  background:var(--header-bg);backdrop-filter:saturate(160%) blur(10px)}
+.site-header .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;
+  color:var(--text);letter-spacing:-.01em}
+.brand-logo{display:block;flex:none;color:var(--accent)}
+
+/* Icon-only share + bookmark buttons */
+.sharerow{display:inline-flex;flex-wrap:wrap;gap:8px;margin:18px 0 6px;vertical-align:middle}
+.sharebtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;
+  padding:0;border:1px solid var(--line);border-radius:10px;background:var(--panel);
+  color:var(--text);cursor:pointer;text-decoration:none;
+  transition:border-color .15s,background .15s,color .15s}
+.sharebtn:hover{border-color:var(--accent);background:var(--accent-soft);color:var(--text)}
+.sharebtn img{display:block;width:20px;height:20px;image-rendering:pixelated}
+.sharebtn .ic{width:18px;height:18px}
+.sharebtn.copied{border-color:var(--ok);color:var(--ok)}
+.bmk.saved{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.dlbtn{color:var(--accent)}
+.rmbmk{margin-left:auto;background:none;border:0;color:var(--lost);font-size:13px;
+  font-weight:600;cursor:pointer}
+.rmbmk:hover{text-decoration:underline}
+.brand-text{white-space:nowrap}
+.brand-text span{color:var(--accent)}
+@media(max-width:520px){.brand-text{font-size:16px}}
+.site-header nav{display:flex;align-items:center;gap:4px}
+/* Every nav item is the same 36px-tall flex box, so text links, icon links and
+   the theme toggle stay on one optical baseline whatever the glyph. */
+.site-header nav a{margin-left:18px;display:flex;align-items:center;height:36px;
+  color:var(--muted);font-size:15px;font-weight:500}
+.site-header nav a:hover{color:var(--text)}
+.site-header nav a.nav-ic{justify-content:center;width:36px;margin-left:8px}
+/* The pixel artboards carry different amounts of built-in padding, so icons are
+   sized to a matching optical height rather than to a matching box. */
+.nav-ic .ic{width:22px;height:22px}
+.nav-ic .ic-search{width:17px;height:17px}
+@media(max-width:600px){
+  .wrap{padding:0 16px}
+  .brand{gap:8px}
+  .brand-text{font-size:15px}
+  .site-header nav a{margin-left:13px;font-size:14px}
+  .site-header nav a.nav-ic{width:32px;margin-left:4px}
+  .theme-toggle{margin-left:12px;width:34px;height:34px}
+}
+/* Narrow phones: keep the logo and a compact wordmark, drop what repeats. */
+@media(max-width:460px){
+  .brand-text{font-size:14px}
+  .brand-text span{display:none}
+  .site-header nav a{margin-left:8px}
+  .site-header nav a.nav-text{display:none}
+}
+.theme-toggle{margin-left:18px;display:inline-flex;align-items:center;justify-content:center;
+  width:36px;height:36px;border:1px solid var(--line);border-radius:9px;background:transparent;
+  color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s,background .15s}
+.theme-toggle:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+.theme-toggle .ic{width:24px;height:24px}
+.theme-toggle .ic-sun{display:none}
+html[data-theme="light"] .theme-toggle .ic-sun{display:inline-block}
+html[data-theme="light"] .theme-toggle .ic-moon{display:none}
+
+/* Infinite scroll */
+#sentinel{height:1px}
+.loadmore{display:flex;justify-content:center;align-items:center;gap:9px;padding:18px;
+  color:var(--muted);font-size:14px}
+.loadmore.hidden{display:none}
+.spinner{width:18px;height:18px;border:2px solid var(--line);border-top-color:var(--accent);
+  border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scroll-end{text-align:center;color:var(--faint);font-size:13px;padding:16px}
+.site-footer{border-top:1px solid var(--line);margin-top:64px;padding:30px 0;
+  color:var(--muted);font-size:13px;line-height:1.7}
+.site-footer p{margin:0 0 8px;max-width:760px}
+
+/* Hero + search panel */
+.hero{padding:46px 0 10px}
+.hero h1{margin:0 0 8px;font-size:clamp(26px,4vw,36px);font-weight:750;letter-spacing:-.02em}
+.lead{margin:0 0 26px;color:var(--muted);font-size:17px;max-width:640px}
+
+.searchpanel{background:var(--panel);border:1px solid var(--line);border-radius:16px;
+  padding:18px;box-shadow:var(--shadow)}
+.searchrow{display:flex;gap:12px}
+.searchinput{position:relative;flex:1;display:flex;align-items:center}
+.searchinput svg{position:absolute;left:16px;width:20px;height:20px;color:var(--faint);
+  pointer-events:none}
+.searchinput input{width:100%;height:54px;padding:0 16px 0 46px;border-radius:var(--radius);
+  border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:16px;
+  transition:border-color .15s, box-shadow .15s}
+.searchinput input::placeholder{color:var(--faint)}
+.searchinput input:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.btn-primary{height:54px;padding:0 30px;border:0;border-radius:var(--radius);
+  background:var(--accent);color:#fff;font-weight:650;font-size:16px;cursor:pointer;
+  transition:background .15s,transform .04s;white-space:nowrap}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:active{transform:translateY(1px)}
+
+/* Tops, not bottoms: a filter carrying tag chips is taller than its neighbours,
+   and bottom-alignment pushed every plain field in the row down to meet it,
+   leaving the labels on four different lines. */
+.refine{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin-top:16px;
+  padding-top:16px;border-top:1px solid var(--line-soft)}
+.rf{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rf-org{flex:1 1 260px}
+.rf-date{flex:0 1 170px}
+.rf label{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint)}
+.rf select,.rf input{height:42px;padding:0 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14.5px;
+  width:100%;transition:border-color .15s,box-shadow .15s}
+.rf select:focus,.rf input:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.rf-clear{align-self:center;color:var(--muted);font-size:14px;padding-bottom:10px}
+
+/* Tag-chip multi-select.
+   Two layouts in one component: before multiselect.js runs (and forever, if it
+   never does) this is a plain <select multiple> that submits the same repeated
+   parameters. .ms-ready is added by the script, so every enhanced-only rule
+   hangs off it and the unenhanced control is never styled into something that
+   looks broken. */
+.rf-ms{flex:1 1 260px;position:relative}
+.rf-ms select[multiple]{min-height:96px;padding:6px 8px}
+.ms-hint{font-size:11.5px;color:var(--faint)}
+.ms-field{position:relative}
+.ms-input{height:42px;width:100%;padding:0 30px 0 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);background:var(--bg);color:var(--text);font-size:14.5px;
+  transition:border-color .15s,box-shadow .15s}
+.ms-input::placeholder{color:var(--faint)}
+.ms-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+/* The caret is drawn on the wrapper rather than added as an element so it can
+   never take a click away from the input underneath it. */
+.ms-field::after{content:"";position:absolute;right:12px;top:18px;pointer-events:none;
+  border:5px solid transparent;border-top-color:var(--faint);transition:transform .15s}
+.rf-ms.is-open .ms-field::after{transform:rotate(180deg);transform-origin:50% 25%}
+/* The popup owns the frame; the list inside it scrolls and the Done bar below
+   it does not, so no option can ever end up underneath the dismiss control. */
+.ms-pop{position:absolute;z-index:30;top:calc(100% + 4px);left:0;right:0;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  box-shadow:var(--shadow);overflow:hidden}
+/* pan-y hands vertical panning to the browser outright, so a finger dragged
+   down the list scrolls it instead of arriving at an option as a click; contain
+   stops that scroll chaining into the page once the list hits its end. */
+.ms-menu{margin:0;padding:4px;list-style:none;max-height:244px;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;touch-action:pan-y;overscroll-behavior:contain}
+.ms-opt{padding:8px 10px;border-radius:6px;font-size:14px;color:var(--text);cursor:pointer;
+  display:flex;align-items:center;gap:8px}
+/* An author `display` beats the UA sheet's [hidden]{display:none}, so filtering
+   out an option had no visible effect at all until this rule. */
+.ms-opt[hidden]{display:none}
+.ms-opt:hover,.ms-opt.is-active{background:var(--hover)}
+.ms-opt.is-on{color:var(--accent)}
+/* A tick that occupies its column whether or not it is drawn, so the labels of
+   selected and unselected rows stay on one left edge. */
+.ms-opt::before{content:"";flex:none;width:14px;height:14px;border-radius:4px;
+  border:1px solid var(--line);background:var(--bg)}
+.ms-opt.is-on::before{border-color:var(--accent);background:var(--accent);
+  box-shadow:inset 0 0 0 2px var(--panel)}
+.ms-none{padding:8px 10px;font-size:14px;color:var(--faint)}
+/* Always on screen while the menu is open — the thumb never has to scroll a
+   147-row list back to the top to find the way out. */
+.ms-done{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:7px 8px 7px 12px;background:var(--elevated);
+  border-top:1px solid var(--line-soft)}
+.ms-count{font-size:12px;color:var(--faint)}
+.ms-donebtn{padding:7px 18px;border-radius:var(--radius-sm);border:1px solid var(--accent);
+  background:var(--accent-soft);color:var(--accent);font:inherit;font-size:13px;
+  font-weight:650;cursor:pointer}
+.ms-donebtn:hover{background:var(--accent);color:#fff}
+
+/* Selected filters are a *stack*, not a wrapping cloud of pills.
+   The values here are real department names — "CHENNAI RIVERS TRANSFORMATION
+   COMPANY LIMITED", "Chennai Unified Metropolitan Transport Authority" — and as
+   inline pills they wrapped inside themselves, so a column of five chips was
+   five different heights with five different text alignments and read as five
+   different components. One full-width row each, one line each, one height
+   each: the column now has a rhythm, and the eye can compare the left edges,
+   which is the only way to tell two similarly-named authorities apart.
+   Truncation rather than wrapping, with the full name on the element's title
+   and aria-label, so nothing is lost — see renderChips in multiselect.js. */
+.ms-chips{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+.rf-ms.ms-ready .ms-chips:not(:empty){margin-top:8px}
+.ms-chip{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:34px;padding:6px 10px 6px 12px;text-align:left;
+  border-radius:var(--radius-sm);border:1px solid var(--accent);
+  background:var(--accent-soft);color:var(--text);font:inherit;font-size:13px;
+  line-height:1.35;cursor:pointer}
+.ms-label{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-chip:hover{background:var(--hover);border-color:var(--accent-hover)}
+.ms-x{flex:none;width:18px;text-align:center;color:var(--muted);font-size:16px;line-height:1}
+.ms-chip:hover .ms-x{color:var(--lost)}
+
+/* ── Phone shape: the option list is a bottom sheet ────────────────────────
+   Set by multiselect.js (class .ms-sheet), not by a media query, so the script
+   and the stylesheet cannot disagree about which shape is on screen — and so
+   that a browser running no script never gets a half-built sheet.
+
+   The point of a sheet is that the list and the Done button are positioned
+   against the viewport instead of against a field two-thirds of the way down a
+   long form. Nothing can fall below the fold, and the page underneath is frozen
+   so it can no longer be scrolled out from under the open list. */
+html.ms-open, html.ms-open body{overflow:hidden}
+.ms-backdrop{position:fixed;inset:0;z-index:40;background:rgba(5,7,12,.55);
+  opacity:0;visibility:hidden;transition:opacity .18s ease,visibility .18s}
+.ms-backdrop.show{opacity:1;visibility:visible}
+
+/* The closed field on a phone. A button and not the text input, because the
+   browser focuses a text input on any touch that lands in it — including the
+   first millimetre of a page scroll — and a focused input is a soft keyboard. */
+.ms-trigger{display:none}
+.rf-ms.ms-sheet .ms-trigger{display:flex;align-items:center;width:100%;height:42px;
+  padding:0 30px 0 12px;border-radius:var(--radius-sm);border:1px solid var(--line);
+  background:var(--bg);color:var(--text);font:inherit;font-size:14.5px;text-align:left;
+  cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.rf-ms.ms-sheet .ms-trigger.is-empty{color:var(--faint)}
+.rf-ms.ms-sheet .ms-trigger:focus-visible{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.ms-triglabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* No caret is drawn over the search box in the sheet, so it keeps its padding.
+   16px is the floor below which iOS Safari zooms the page in on focus, which on
+   an already-open sheet leaves the user panning a magnified modal. */
+.rf-ms.ms-sheet .ms-head .ms-input{padding-right:12px;height:44px;font-size:16px}
+
+.rf-ms.ms-sheet .ms-pop{position:fixed;z-index:50;top:auto;left:0;right:0;bottom:0;
+  display:flex;flex-direction:column;max-height:84vh;max-height:84dvh;
+  border-width:1px 0 0;border-radius:16px 16px 0 0;
+  box-shadow:0 -10px 40px rgba(0,0,0,.34);animation:ms-rise .2s ease-out}
+/* The author `display` above beats the UA sheet's [hidden]{display:none}, so
+   without this every closed sheet stays on screen stacked over the last —
+   the same trap as .ms-opt[hidden] further up. */
+.rf-ms.ms-sheet .ms-pop[hidden]{display:none}
+@keyframes ms-rise{from{transform:translateY(18px)}to{transform:none}}
+.ms-head{display:none}
+.rf-ms.ms-sheet .ms-head{display:flex;flex:none;flex-direction:column;gap:9px;
+  padding:10px 14px 12px;border-bottom:1px solid var(--line-soft)}
+/* A grab handle. It is not draggable, but it is the one shape that says
+   "sheet" before a word is read, and it marks the top edge of a panel that has
+   no other frame above it. */
+.rf-ms.ms-sheet .ms-head::before{content:"";flex:none;width:38px;height:4px;
+  border-radius:2px;background:var(--line);margin:0 auto 2px}
+.ms-title{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint)}
+.rf-ms.ms-sheet .ms-menu{flex:1 1 auto;min-height:0;max-height:none;padding:4px 6px}
+/* Thumb-sized rows: a 34px row is a miss on a list where the wrong pick is a
+   department name that reads almost the same as the right one. */
+.rf-ms.ms-sheet .ms-opt{padding:12px 10px;font-size:15px}
+.rf-ms.ms-sheet .ms-opt::before{width:16px;height:16px}
+.rf-ms.ms-sheet .ms-done{flex:none;padding:10px 12px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom))}
+.rf-ms.ms-sheet .ms-count{font-size:13px}
+.rf-ms.ms-sheet .ms-donebtn{padding:11px 26px;font-size:14px}
+@media(prefers-reduced-motion:reduce){
+  .rf-ms.ms-sheet .ms-pop{animation:none}
+  .ms-backdrop{transition:none}
+}
+
+/* Stat strip */
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.stats .stat{background:var(--panel);border:1px solid var(--line-soft);border-radius:999px;
+  padding:7px 15px;font-size:13.5px;color:var(--muted)}
+.stats .stat b{color:var(--text);font-weight:650}
+
+/* Inline icons (no emoji) */
+.ic{width:1em;height:1em;display:inline-block;vertical-align:-.14em;flex:none}
+/* 8x8 pixel-grid icons carry no internal padding, so they read heavier than the
+   stroke icons at the same box size — trim them to match optically. */
+.ic-px{width:.88em;height:.88em;vertical-align:-.08em}
+.ic-pin{width:.95em;height:.95em;vertical-align:-.1em}
+
+/* Live-tenders departure board (split-flap style) */
+.board{position:relative;margin:22px 0 6px;background:var(--board-bg);
+  border:1px solid var(--board-line);border-radius:var(--radius);overflow:hidden;
+  box-shadow:var(--board-shadow),inset 0 1px 0 var(--board-bezel)}
+.board-head{display:flex;align-items:center;gap:8px;padding:8px 14px;
+  font:600 11.5px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;
+  color:var(--board-head-fg);border-bottom:1px solid var(--board-line);
+  background:var(--board-head-bg)}
+/* 8-bit status lamp. A 5x5 artboard rendered at 10px puts every cell on an
+   exact 2px boundary — at any non-integer multiple the cells resample and it
+   collapses back into the smooth dot this replaces. Three tones (lit top,
+   base, shaded underside) read as a lamp rather than a flat blob; the glow is
+   a drop-shadow filter, which follows the pixel silhouette, unlike box-shadow
+   which would halo the square element. */
+.board-dot{width:10px;height:10px;flex:none;image-rendering:pixelated;
+  background:center/contain no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='5' height='5' shape-rendering='crispEdges'%3E%3Cpath fill='%236ee7b7' d='M1 0h3v1H1zM0 1h2v1H0z'/%3E%3Cpath fill='%2334d399' d='M2 1h3v1H2zM0 2h5v1H0z'/%3E%3Cpath fill='%23059669' d='M0 3h5v1H0zM1 4h3v1H1z'/%3E%3C/svg%3E");
+  animation:dot-glow 1.8s ease-in-out infinite}
+@keyframes dot-glow{
+  0%,100%{filter:drop-shadow(0 0 1px rgba(52,211,153,.65))}
+  50%{filter:drop-shadow(0 0 3px rgba(52,211,153,1)) drop-shadow(0 0 6px rgba(52,211,153,.5))}}
+@media(prefers-reduced-motion:reduce){
+  .board-dot{animation:none;filter:drop-shadow(0 0 2px rgba(52,211,153,.8))}}
+/* The window the flaps travel through, masked to a soft edge at both ends.
+   A marquee is only ever at its start offset for one frame, so at any moment a
+   reader arrives the leading card is part-way past the edge. Against a hard
+   1px border that reads as a rendering fault — the reported "first flap is
+   clipped" is this, not an animation offset and not an overflow bug. Fading
+   the last ~54px says "this continues", which is what a departure board does. */
+.board-window{overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 54px,
+    #000 calc(100% - 54px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 54px,
+    #000 calc(100% - 54px),transparent 100%)}
+.board-track{display:flex;width:max-content;animation:marquee 110s linear infinite}
+.board:hover .board-track{animation-play-state:paused}
+@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.flap{flex:0 0 auto;width:300px;padding:13px 18px;border-right:1px solid var(--board-line);
+  display:flex;flex-direction:column;gap:5px;color:var(--flap-text)}
+.flap:hover{background:var(--flap-hover)}
+.flap-time{display:flex;align-items:baseline;gap:7px;
+  font:600 11.5px/1.35 ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:.04em;color:var(--gold)}
+.flap-name{font-size:14.5px;font-weight:600;line-height:1.3;color:var(--flap-text);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.6em}
+.flap-amt{font-size:15px;font-weight:700;color:var(--gold-amt)}
+/* The absolute date backing up the relative phrase above it. Monospace so the
+   dates line up column-wise as the cards travel past. */
+.flap-when{font:11.5px/1.3 ui-monospace,SFMono-Regular,Menlo,monospace;
+  color:var(--flap-sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flap-sub{font-size:12px;color:var(--flap-sub);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis}
+/* Larger board on the dashboard */
+.board-lg .board-head{font-size:12.5px;padding:10px 16px}
+.board-lg .flap{width:330px;padding:15px 20px}
+/* On a 390px phone a 330px flap plus a 54px fade left no whole card readable.
+   Narrower cards mean one is always fully in the clear. */
+@media(max-width:600px){
+  .board-window{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28px,
+      #000 calc(100% - 28px),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 28px,
+      #000 calc(100% - 28px),transparent 100%)}
+  .flap,.board-lg .flap{width:252px;padding:12px 14px}
+  .flap-name{font-size:13.5px}
+  .flap-amt{font-size:14px}
+}
+@media(prefers-reduced-motion:reduce){.board-track{animation:none}}
+
+/* Advanced-search disclosure — a clearly visible button */
+.adv{margin-top:14px}
+.adv>summary{list-style:none;cursor:pointer;display:flex;align-items:center;
+  justify-content:space-between;gap:8px;padding:12px 15px;border:1px solid var(--line);
+  border-radius:var(--radius-sm);background:var(--bg);color:var(--accent);
+  font-size:14.5px;font-weight:600;transition:border-color .15s,background .15s}
+.adv>summary:hover{border-color:var(--accent);background:var(--accent-soft)}
+.adv>summary::-webkit-details-marker{display:none}
+.adv-link{display:inline-flex;align-items:center;gap:8px}
+.adv-caret{display:inline-flex;color:var(--muted);transition:transform .2s}
+.adv[open] .adv-caret{transform:rotate(180deg)}
+.adv .refine{margin-top:14px;border-top:0;padding-top:0}
+.rf-check{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:14px;
+  white-space:nowrap;align-self:center;padding-bottom:2px}
+.rf-check input{width:auto}
+.crit-group{margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+.crit-title{display:block;font-size:11.5px;font-weight:600;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--faint);margin-bottom:10px}
+.crit-boxes{display:flex;flex-wrap:wrap;gap:10px 22px}
+.crit-boxes .rf-check{align-self:auto;padding-bottom:0}
+.crit-group .rf-clear{display:inline-block;margin-top:14px}
+
+/* Chart cards */
+.dash-top{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.charts{display:flex;flex-direction:column;gap:12px;margin:12px 0}
+.dcard-chart{min-height:190px}
+.chartbox{position:relative;flex:1;min-height:140px;margin-top:10px}
+/* Bars are laid out in flexbox rather than drawn, so the chart is responsive
+   without a resize observer and costs nothing to render. */
+.bars{position:absolute;inset:0;display:flex;align-items:stretch;gap:4px}
+.bar-col{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar-track{flex:1;display:flex;align-items:flex-end;min-height:0}
+.bar{width:100%;max-width:30px;margin:0 auto;background:var(--accent);
+  border-radius:5px 5px 0 0;position:relative}
+.bar>span{position:absolute;bottom:100%;left:50%;transform:translate(-50%,-6px);
+  white-space:nowrap;background:var(--panel);color:var(--text);
+  border:1px solid var(--line);border-radius:6px;padding:4px 7px;font-size:11px;
+  opacity:0;pointer-events:none;transition:opacity .12s;z-index:3}
+.bar-col:hover .bar>span{opacity:1}
+.bar-label{font-size:10px;color:var(--faint);text-align:center;padding-top:6px;
+  line-height:1;font-variant-numeric:tabular-nums}
+.drange{font-size:11.5px;font-weight:500;color:var(--faint);margin-left:8px;
+  letter-spacing:0;text-transform:none}
+.dcard-links{margin-top:auto;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.dlink-hist{display:inline-flex;align-items:center;gap:5px;color:var(--muted)}
+.dlink-hist:hover{color:var(--text)}
+.dash-hero{padding:40px 0 4px}
+.dash-hero .lead a{font-weight:600;display:inline-flex;align-items:center;gap:4px}
+.flap-time .ic{color:var(--gold)}
+
+/* Dashboard */
+.dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(216px,1fr));gap:12px;margin:14px 0 8px}
+.dcard{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+  padding:15px 16px;min-height:128px;display:flex;flex-direction:column}
+.dcard-warn{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.05)}
+.dlabel{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+  color:var(--faint)}
+/* The alert triangle in "Short bidding windows" is the only icon on this card
+   and the reason the card is red — at 1em of an 11.5px label it was reading as
+   a stray pixel, not a warning. Sized off the .dbig figure below it instead of
+   the label text, so it's legible without dominating the row. */
+.dlabel .ic-px{width:16px;height:16px;vertical-align:-3px;margin-right:1px}
+.dbig{font-size:34px;font-weight:750;letter-spacing:-.02em;margin-top:4px;line-height:1.1}
+.dcard-warn .dbig{color:var(--lost)}
+.dsub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.drow{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+.drow b{color:var(--text);font-size:19px;font-weight:700;margin-right:3px}
+.dcard .spark,.dcard .bars{margin-top:auto;padding-top:8px}
+.dlink{margin-top:auto;font-size:13px;font-weight:600;color:var(--lost)}
+.dlink:hover{color:#ff9090}
+
+/* Watch list flag cards */
+.card-flag{border-left:3px solid var(--lost)}
+.window-badge{display:inline-block;margin-left:10px;font-size:12px;font-weight:600;
+  padding:2px 9px;border-radius:999px;color:var(--lost);background:rgba(248,113,113,.1);
+  border:1px solid rgba(248,113,113,.4)}
+
+/* Section headings */
+section{margin:30px 0}
+.sechead{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;
+  padding-bottom:10px;border-bottom:1px solid var(--line)}
+.sechead h2{margin:0;font-size:17px;font-weight:650}
+/* The count must not be broken across lines to make room for the alert button
+   beside it — "21,278" on one line and "found" on the next reads as two facts.
+   The button wraps to its own row instead, which on a phone is where a
+   full-width labelled control wants to be anyway. */
+.sechead{flex-wrap:wrap}
+.sechead .count{color:var(--faint);font-size:14px;white-space:nowrap}
+/* Alert-me-about-this-search. Sits with the count because it acts on the search
+   that produced the count, not on the tenders below it. It is a *bell* and not
+   a bookmark: this site now keeps two different promises, and they had been
+   wearing the same glyph. Bookmark = kept in this browser, tells the server
+   nothing. Bell = the server will push to this device. The bell states and
+   their animation are shared with .alertbtn, below. */
+.watchbtn{display:inline-flex;align-items:center;gap:7px;
+  padding:4px 11px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);color:var(--muted);cursor:pointer;
+  font-size:12.5px;font-weight:600;line-height:1.7;
+  align-self:center;transition:color .15s,background .15s,border-color .15s}
+.watchbtn .ic{width:14px;height:14px;flex:none}
+.watchbtn:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+.watchbtn:focus-visible{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.watchbtn:disabled{cursor:progress}
+
+/* Result cards */
+.results{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);
+  padding:15px 17px;transition:border-color .15s,background .15s}
+.card:hover{border-color:var(--line);background:var(--elevated)}
+.card-title{display:inline-block;font-size:16px;font-weight:600;color:var(--text);
+  line-height:1.4}
+.card:hover .card-title{color:var(--accent)}
+.card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin-top:9px;
+  font-size:13px;color:var(--muted)}
+.card-meta .val{color:var(--text);font-weight:600}
+.card-meta .val-award{color:var(--award);font-weight:650}
+.card-meta .tid{margin-left:auto;color:var(--faint);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+.snip{margin-top:9px;color:var(--snip);font-size:14px;line-height:1.55}
+/* An excerpt that is not the matching passage has to say so, and has to be
+   distinguishable at a glance from one that is — otherwise the opening of a
+   document reads as the reason it came back. */
+.snip-why{display:inline-block;margin-right:7px;padding:1px 7px;border-radius:6px;
+  background:var(--chip-bg);border:1px solid var(--line-soft);color:var(--muted);
+  font-size:11.5px;text-transform:uppercase;letter-spacing:.04em;vertical-align:1px}
+mark{background:var(--mark);color:#1a1a1a;padding:0 3px;border-radius:3px}
+.empty{color:var(--muted);padding:18px;background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:var(--radius);text-align:center}
+
+/* Organisation breadcrumb chips */
+.orgpath{display:inline-flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:9px}
+.orgchip{display:inline-block;padding:2px 9px;border-radius:7px;font-size:12px;line-height:1.5;
+  background:var(--chip-bg);border:1px solid var(--line-soft);color:var(--muted)}
+a.orgchip{transition:border-color .15s,color .15s}
+a.orgchip:hover{border-color:var(--accent);color:var(--text)}
+.orgchip.lead-chip{background:var(--accent-soft);border-color:transparent;color:var(--lead-chip-text)}
+a.orgchip.lead-chip:hover{border-color:var(--accent);color:var(--lead-chip-text)}
+.orgsep{color:var(--faint);font-size:12px;user-select:none}
+.card-meta .orgpath{margin-top:0}
+
+/* Badges */
+.badges{margin:10px 0 22px;display:flex;gap:7px;flex-wrap:wrap}
+.badge{display:inline-block;font-size:12px;padding:3px 10px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);font-weight:500}
+.b-ok{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.b-lost{color:var(--lost);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+.b-warn{color:var(--warn);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+
+/* Live/Closed state pill — same shape as .badge, distinct colour per state.
+   One mapping, three surfaces (page badge, card pill, board flap): green =
+   open, amber = not open yet or closing today, red = the door is shut, grey =
+   the portal never published dates. Closed was grey, which made "you cannot
+   bid on this" the quietest thing on the card. */
+.badge.st-live{color:var(--st-live-fg);border-color:var(--st-live-fg);background:var(--st-live-bg);font-weight:650}
+.badge.st-soon,.badge.st-pending{color:var(--st-soon-fg);border-color:var(--st-soon-fg);background:var(--st-soon-bg);font-weight:650}
+.badge.st-closed{color:var(--st-closed-fg);border-color:var(--st-closed-fg);background:var(--st-closed-bg);font-weight:650}
+.badge.st-unknown{color:var(--st-none-fg);background:var(--st-none-bg)}
+.badge.st-cancelled{color:var(--lost);border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.12);font-weight:650}
+.badge.st-awarded,.badge.b-award{color:var(--award);border-color:var(--award);
+  background:var(--award-soft);font-weight:650}
+.card-state{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;
+  padding:2px 9px;border-radius:999px;margin-right:2px}
+.card-state.st-live{color:var(--st-live-fg);background:var(--st-live-bg)}
+.card-state.st-soon,.card-state.st-pending{color:var(--st-soon-fg);background:var(--st-soon-bg)}
+.card-state.st-closed{color:var(--st-closed-fg);background:var(--st-closed-bg)}
+.card-state.st-unknown{color:var(--st-none-fg);background:var(--st-none-bg)}
+.card-state.st-cancelled{color:var(--lost);background:rgba(248,113,113,.12);font-weight:650}
+.card-state.st-awarded{color:var(--award);background:var(--award-soft);font-weight:650}
+.card-state::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+/* The board's own lamps. Same green/amber/red mapping as everywhere else, but
+   its own tokens, because the ground under them is a lit panel in one theme and
+   an unlit one in the other and a single colour cannot be legible on both.
+   Each is a tinted chip rather than bare coloured text — set in the same
+   monospace as the deadline beside it, plain text ran the two together as
+   "CLOSED Closed 10 days ago". */
+.flap-state{flex:none;font-size:10.5px;font-weight:700;letter-spacing:.03em;
+  text-transform:uppercase;padding:2px 6px;border-radius:4px}
+.flap-state.st-live{color:var(--board-live);background:var(--board-live-bg)}
+.flap-state.st-soon,.flap-state.st-pending{color:var(--board-soon);background:var(--board-soon-bg)}
+.flap-state.st-closed{color:var(--board-closed);background:var(--board-closed-bg)}
+.flap-state.st-unknown{color:var(--board-none);background:var(--board-none-bg)}
+.flap-state.st-cancelled{color:var(--board-closed);background:var(--board-cancel-bg)}
+.flap-state.st-awarded{color:var(--board-award);background:var(--board-award-bg)}
+
+/* Pager */
+.pager{display:flex;gap:14px;align-items:center;justify-content:center;margin:24px 0}
+.pager a{padding:8px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  color:var(--text);font-size:14px}
+.pager a:hover{border-color:var(--accent);background:var(--accent-soft)}
+
+/* Tender detail */
+.crumbs{margin:22px 0 8px;color:var(--muted);font-size:14px}
+.tender h1{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.01em;margin:6px 0 2px}
+/* body has overflow-x:hidden, so an over-wide table would be clipped rather than
+   reachable — it scrolls inside its own container instead. */
+.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.docs{width:100%;border-collapse:collapse;font-size:14px;background:var(--panel);
+  border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden}
+.docs th,.docs td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line-soft);
+  vertical-align:top}
+.docs thead th{background:var(--elevated);color:var(--muted);font-weight:600;font-size:13px}
+.docs tr:last-child td{border-bottom:0}
+.dl{display:inline-block;font-size:13px;font-weight:600;padding:4px 12px;border-radius:7px;
+  background:var(--accent);color:#fff}
+.dl:hover{background:var(--accent-hover);color:#fff}
+.dl.ghost{background:transparent;color:var(--accent);border:1px solid var(--line);margin-right:6px}
+.dl.ghost:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+/* Long filenames wrap instead of forcing the table wider than the viewport.
+   The type mark, the name and the size are one line of prose, not three
+   columns: the mark answers "what kind of file is this" before the name is
+   read, and the size in brackets is the aside it would be if spoken aloud. */
+.doc-name{word-break:break-word}
+.doc-ft{display:inline-flex;align-items:center;justify-content:center;
+  width:15px;color:var(--faint);vertical-align:-2px;margin-right:7px}
+.doc-ft .ic{width:14px;height:14px}
+.doc-fn{overflow-wrap:anywhere}
+/* Bracketed, quiet, and never allowed to wrap on its own — a size split across
+   two lines reads as two numbers. */
+.doc-size{color:var(--faint);font-size:12.5px;white-space:nowrap}
+/* The "(size)" in the header is the same aside as the value beneath it, so it
+   is set the same way rather than shouting at header weight. */
+.th-sub{font-weight:400;color:var(--faint);text-transform:none}
+/* Two narrow action columns rather than one cell, so every download icon lines
+   up even on rows whose file can't be previewed. */
+.docs .act-col{width:52px;text-align:center;vertical-align:middle;padding-left:0;padding-right:0}
+/* The icon is the button: no box, no fill — just colour and a hover shift. */
+.dl-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--accent)}
+.dl-icon .ic{width:22px;height:22px}
+a.dl-icon:hover{color:var(--accent-hover)}
+.dl-icon.disabled{position:relative;color:var(--muted);cursor:not-allowed}
+.dl-icon.disabled>.ic{opacity:.4}
+.no-file-x{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:var(--lost);pointer-events:none}
+
+/* Pixel status icons (trees) — icon only, status conveyed by colour + tooltip */
+.docstat{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;
+  border-radius:7px;border:1px solid}
+.docstat .ic{width:16px;height:16px}
+.docstat.b-ok{color:var(--ok);border-color:rgba(52,211,153,.4);background:rgba(52,211,153,.08)}
+.docstat.b-lost{color:var(--lost);border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.08)}
+.docstat.b-warn{color:var(--warn);border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.08)}
+.stat-text{font-size:12px;font-weight:600;color:var(--warn)}
+
+/* Red-flag alert — pixel frame, pixel headline, plain readable body. */
+.redflag{margin:16px 0 4px;padding:14px 16px;background:rgba(248,113,113,.07);
+  border:4px solid var(--lost);border-radius:0;
+  border-image:var(--pixel-frame) 2 stretch}
+.redflag p{margin:0;font-size:14px;line-height:1.6;color:var(--text)}
+.redflag-title{font-family:"Press Start 2P",ui-monospace,monospace;font-size:12px;
+  line-height:1.7;color:var(--lost);margin-bottom:10px!important}
+.redflag-title .ic{width:16px;height:16px;vertical-align:-2px;margin-right:6px}
+
+/* Cancelled seal — sits above the title rather than across it. A rotated
+   overlay would read as a stamp but would also cover the words it is stamping,
+   and on a phone `body{overflow-x:hidden}` would silently clip whatever leaned
+   past the edge, so the stamp is set in its own column instead of on top. */
+.seal{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;
+  margin:0 0 18px;padding:14px 16px;background:var(--seal-bg);
+  border:4px solid var(--lost);border-radius:0;
+  border-image:var(--pixel-frame) 2 stretch}
+.seal-stamp{flex:0 0 auto;margin:0;font-family:"Press Start 2P",ui-monospace,monospace;
+  font-size:15px;line-height:1;color:var(--lost);letter-spacing:1px;
+  border:3px solid var(--lost);padding:9px 11px;white-space:nowrap}
+.seal-stamp .ic{width:15px;height:15px;vertical-align:-2px;margin-right:7px}
+.seal-body{flex:1 1 260px;min-width:0}
+.seal-body p{margin:0;font-size:14px;line-height:1.6;color:var(--text)}
+.seal-meta{margin-top:7px!important;font-size:12.5px!important;color:var(--muted)!important}
+/* Same stamp, other verdict. Only the colour changes, so the two states read as
+   one family and neither can be mistaken for the other. */
+.seal-award{background:var(--award-soft);border-color:var(--award);
+  border-image:var(--award-frame) 2 stretch}
+.seal-award .seal-stamp{color:var(--award);border-color:var(--award)}
+
+/* Award of contract panel */
+.award{margin:10px 0 4px}
+.aw-money{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.aw-fig{flex:1 1 170px;min-width:0;display:flex;flex-direction:column;gap:3px;
+  padding:12px 14px;background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:var(--radius)}
+.aw-lab{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint)}
+.aw-val{font-size:23px;font-weight:700;line-height:1.25;font-variant-numeric:tabular-nums}
+.aw-exact{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.aw-est .aw-val{color:var(--gold)}
+.aw-won{border-color:var(--award);background:var(--award-soft)}
+.aw-won .aw-val{color:var(--award)}
+.aw-delta.aw-over .aw-val{color:var(--lost)}
+.aw-delta.aw-under .aw-val{color:var(--muted)}
+.aw-kv{margin-bottom:6px}
+.aw-sub{margin:16px 0 8px;font-size:12.5px;font-weight:650;color:var(--faint);
+  letter-spacing:.03em;text-transform:uppercase}
+.aw-bids .aw-amt{font-variant-numeric:tabular-nums;white-space:nowrap}
+.aw-bids tr.aw-l1 td{color:var(--award);font-weight:650}
+.aw-docs{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.aw-docs li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  padding:9px 13px;background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm);font-size:14px}
+.aw-docs li a:first-child{min-width:0;word-break:break-word}
+.aw-docs .dl-icon{margin-left:auto}
+
+/* Amendment (corrigendum) history */
+.tender h2 .count{font-size:13.5px;font-weight:500;color:var(--faint);margin-left:8px}
+.corrig{list-style:none;margin:10px 0 4px;padding:0;display:flex;
+  flex-direction:column;gap:6px}
+.corrig li{display:flex;gap:9px;align-items:center;flex-wrap:wrap;
+  padding:8px 12px;background:var(--panel);border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm)}
+.corrig-n{flex:0 0 auto;font-size:11px;color:var(--faint);
+  font-variant-numeric:tabular-nums;min-width:14px}
+.corrig-type{font-size:12px;font-weight:650;padding:2px 9px;border-radius:999px;
+  background:var(--accent-soft);color:var(--accent)}
+.corrig-type.corrig-cancel{background:rgba(248,113,113,.12);color:var(--lost)}
+.corrig-title{font-size:13.5px;color:var(--muted);min-width:0;word-break:break-word}
+
+/* Superseded document versions, nested under their live row */
+.ver-row td{background:var(--elevated);padding:10px 14px!important}
+.ver-head{margin:0 0 8px;font-size:12.5px;font-weight:650;color:var(--warn)}
+.ver-head .ic{width:14px;height:14px;vertical-align:-2px;margin-right:5px}
+.vers{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.vers li{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px}
+.ver-when{color:var(--text);min-width:112px}
+.ver-current .ver-when{color:var(--ok);font-weight:650}
+.ver-hash{font-family:ui-monospace,monospace;font-size:11.5px;color:var(--faint)}
+
+@media (max-width:560px){
+  .seal{padding:12px 13px;gap:11px}
+  .seal-stamp{font-size:11px;padding:7px 9px;letter-spacing:.5px}
+  .seal-stamp .ic{width:12px;height:12px;margin-right:5px}
+  .seal-body p{font-size:13.5px}
+  .ver-when{min-width:0}
+  /* Two figures side by side stop being comparable below ~360px of column, so
+     they stack — but they stack as a pair, never with one of them dropped. */
+  .aw-money{gap:9px}
+  .aw-fig{flex:1 1 100%;padding:10px 12px}
+  .aw-val{font-size:20px}
+}
+
+/* Credits */
+.credits{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.credits li{display:flex;align-items:center;gap:14px;padding:12px 15px;background:var(--panel);
+  border:1px solid var(--line-soft);border-radius:var(--radius);font-size:14.5px}
+.credit-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;
+  flex:none;color:var(--accent)}
+.credit-ic .ic,.credit-ic .brand-logo{width:28px;height:28px}
+
+/* In-app document viewer — one preview body (.dv-*) shared by the standalone
+   /view page and the modal that docview.js opens over a tender. */
+.viewer-head{display:flex;justify-content:space-between;align-items:center;gap:14px;
+  flex-wrap:wrap;margin:10px 0 16px}
+.viewer-title{font-size:clamp(17px,2.4vw,23px);margin:0;word-break:break-all}
+.viewer-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.viewer-actions .sharerow{margin:0}
+.viewer-body{margin-bottom:40px}
+.empty .ic{width:15px;height:15px;vertical-align:-2px;margin-right:4px}
+
+/* Modal shell */
+html.dv-open{overflow:hidden}
+.dv-modal{position:fixed;inset:0;z-index:60;display:flex}
+.dv-modal[hidden]{display:none}
+.dv-backdrop{position:absolute;inset:0;background:rgba(5,7,12,.74)}
+.dv-dialog{position:relative;margin:auto;display:flex;flex-direction:column;
+  width:min(1160px,calc(100vw - 32px));height:min(92vh,calc(100vh - 32px));
+  background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);overflow:hidden}
+.dv-head{flex:none;display:flex;align-items:center;gap:12px;padding:9px 11px 9px 16px;
+  border-bottom:1px solid var(--line);background:var(--panel)}
+.dv-name{flex:1 1 auto;min-width:0;margin:0;font-size:15px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dv-tools{flex:none;display:flex;align-items:center;gap:8px}
+.dv-btn,.dv-nav{display:inline-flex;align-items:center;justify-content:center;width:36px;
+  height:36px;padding:0;border:1px solid var(--line);border-radius:9px;background:transparent;
+  color:var(--muted);cursor:pointer;line-height:1;
+  transition:color .15s,border-color .15s,background .15s}
+.dv-btn:hover,.dv-nav:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+.dv-btn .ic{width:18px;height:18px}
+.dv-dl{color:var(--accent)}
+.dv-nav{font-size:19px;font-weight:700}
+.dv-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px;
+  background:var(--elevated)}
+.dv-body:focus{outline:none}
+.dv-pagebar{display:flex;align-items:center;gap:6px}
+.dv-pagebar[hidden]{display:none}
+.dv-count{min-width:66px;text-align:center;font-size:13px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+.dv-pagebar-solo{justify-content:flex-end;margin:0 0 12px}
+.dv-status{color:var(--muted);font-size:14px;text-align:center;padding:26px 8px}
+.dv-note{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.dv-note .ic{width:14px;height:14px;vertical-align:-2px;margin-right:5px;color:var(--warn)}
+
+/* PDF: canvases, not an iframe — mobile browsers hand framed PDFs to the
+   download manager instead of drawing them. */
+.dv-pages{display:flex;flex-direction:column;align-items:center;gap:14px;
+  max-width:1400px;margin:0 auto}
+.dv-page{width:100%;background:#fff;border:1px solid var(--line);border-radius:6px;
+  overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.22)}
+.dv-page canvas{display:block;width:100%;height:auto}
+.dv-image{display:flex;justify-content:center}
+.dv-image img{max-width:100%;height:auto;border-radius:var(--radius-sm);background:#fff}
+
+/* Spreadsheets: rendered server-side, scrolling in both axes inside their own
+   box because body has overflow-x:hidden and would clip them instead. */
+.dv-sheet{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dv-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.dv-tab{flex:none;padding:6px 13px;border:1px solid var(--line);border-radius:999px;
+  background:var(--panel);color:var(--muted);font-size:13px;font-weight:600;
+  white-space:nowrap;cursor:pointer}
+.dv-tab:hover{color:var(--text);border-color:var(--accent)}
+.dv-tab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
+.dv-sheetpane{display:none;min-width:0}
+.dv-sheetpane.on{display:block}
+.dv-tablewrap{overflow:auto;max-height:72vh;background:var(--panel);
+  border:1px solid var(--line);border-radius:var(--radius-sm);-webkit-overflow-scrolling:touch}
+/* max-content, not the default auto width. A BoQ still has dozens of columns
+   after the empty ones are dropped (see docview._sheet), and an auto-width
+   table treats the viewport as a budget to divide between them: on a 390px
+   phone that left about six pixels each, and `word-break:break-word` then did
+   as it was told and broke every heading into one letter per line, so
+   "Percentage" came out as a vertical column of ten characters. The table is
+   already inside a scrolling wrapper, so it should size to its contents and
+   let the reader swipe — a spreadsheet is a thing you pan around, not
+   something to be compressed until it fits. */
+.dv-table{border-collapse:collapse;font-size:13px;width:max-content}
+.dv-table th,.dv-table td{padding:6px 10px;text-align:left;vertical-align:top;
+  border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);
+  min-width:92px;max-width:340px;white-space:pre-wrap;word-break:break-word}
+/* The first column of a BoQ is the description — the only column that is read
+   as prose rather than scanned — so it gets room to be a paragraph. */
+.dv-table th:first-child,.dv-table td:first-child{min-width:160px}
+/* The header must stay legible against the zebra stripe in the light theme,
+   where --elevated and --chip-bg are almost the same grey. */
+.dv-table thead th{position:sticky;top:0;z-index:1;background:var(--hover);
+  border-bottom:2px solid var(--line);color:var(--muted);font-weight:600;
+  font-size:12px;white-space:nowrap}
+.dv-table tbody tr:nth-child(even){background:var(--elevated)}
+.dv-text{margin:0;padding:14px;max-height:72vh;overflow:auto;color:var(--text);
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius-sm);
+  font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  white-space:pre-wrap;word-break:break-word}
+
+/* Sticky headers only work when the wrapper is itself the scrollport, so these
+   boxes must keep a height — inside the modal it is the dialog's, not 72vh. */
+.dv-body .dv-tablewrap,.dv-body .dv-text{max-height:calc(100vh - 172px);
+  max-height:calc(100dvh - 172px)}
+
+/* Phones: the dialog is the screen. */
+@media(max-width:640px){
+  .dv-dialog{width:100vw;height:100vh;height:100dvh;border:0;border-radius:0}
+  .dv-head{padding:7px 7px 7px 12px;gap:8px}
+  .dv-name{font-size:13.5px}
+  .dv-tools{gap:5px}
+  .dv-btn,.dv-nav{width:34px;height:34px}
+  .dv-count{min-width:50px;font-size:12px}
+  .dv-body{padding:8px}
+  .dv-pages{gap:9px}
+  /* Tighter, but still wide enough that a heading is a word rather than a
+     vertical stack of letters — the wrapper scrolls, so this costs nothing. */
+  .dv-table th,.dv-table td{padding:5px 8px;font-size:12.5px;
+    min-width:84px;max-width:220px}
+  .dv-table th:first-child,.dv-table td:first-child{min-width:150px}
+  .dv-body .dv-tablewrap,.dv-body .dv-text{max-height:calc(100vh - 124px);
+    max-height:calc(100dvh - 124px)}
+}
+.kv{width:100%;border-collapse:collapse;font-size:14.5px}
+.kv th{text-align:left;padding:9px 18px 9px 0;color:var(--muted);font-weight:500;
+  white-space:nowrap;vertical-align:top;width:240px}
+.kv td{padding:9px 0;border-bottom:1px solid var(--line-soft);vertical-align:top}
+
+@media(max-width:560px){
+  .docs{font-size:13px}
+  .docs th,.docs td{padding:9px 8px}
+  .docs .sec-col{display:none}
+  /* Wide enough for the word "Download" to sit on one line. The columns used
+     to be 40px because their headers were empty; now that both are labelled,
+     40px wraps "Download" into two lines and drags every row taller. The
+     header text is dropped a size rather than the column widened further —
+     the filename column is the one that needs the space. */
+  .docs .act-col{width:58px}
+  .docs thead .act-col{font-size:11px;letter-spacing:-.01em}
+  .dl-icon .ic{width:20px;height:20px}
+  .redflag-title{font-size:10px}
+}
+
+@media(max-width:680px){
+  .searchrow{flex-direction:column}
+  .btn-primary{width:100%}
+  .rf-org,.rf-date,.rf-ms{flex:1 1 100%}
+  .card-meta .tid{margin-left:0}
+  .kv th{width:auto;display:block;padding-bottom:0}
+  .kv td{display:block;padding-top:2px}
+}
+
+/* ── Critical dates ────────────────────────────────────────────────────────
+   A panel rather than another run of .kv rows, because its whole job is to not
+   look like the 60-row Details table it was extracted from. The two ends of a
+   window sit in two aligned columns so a page of them can be read down rather
+   than sentence by sentence, which is also how the portal prints them. */
+.critdates{margin:18px 0 4px;padding:14px 17px 4px;background:var(--panel);
+  border:1px solid var(--line-soft);border-radius:var(--radius)}
+.cd-head{margin:0 0 4px;font-size:13px;font-weight:650;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.cd-head .ic{width:13px;height:13px;color:var(--faint)}
+/* The stages as a timeline. Each row is a marker, the stage's name, and one
+   date; the connector is a border on the marker's ::before so no empty spacer
+   element is needed and the line can never desync from the rows it joins. */
+.cd-line{list-style:none;margin:2px 0 10px;padding:0;font-size:14.5px}
+.cd-item{position:relative;display:grid;grid-template-columns:auto 1fr auto;
+  align-items:start;gap:0 12px;padding:9px 0}
+.cd-mark{position:relative;display:flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;background:var(--elevated);
+  border:1px solid var(--line-soft);color:var(--accent);flex:none}
+.cd-mark .ic{width:11px;height:11px}
+/* The connector spans the whole row and is drawn on the row, not on the marker.
+   Hung off the marker it could only be given a fixed height, and rows are not
+   a fixed height — a bid-submission row carrying "opened …" and "Closed 8
+   months ago" is three times the height of a bare one, so the line stopped
+   short and the timeline arrived at the next stage visibly broken. Anchored to
+   the row it is exactly as tall as the row whatever the row contains. The
+   marker paints over it (it is a later sibling with its own background), which
+   is what makes the line read as passing behind each node.
+   --cd-node is the distance from the row's top edge to the marker's centre:
+   the row's padding plus half the marker. */
+.cd-item{--cd-node:20px}
+.cd-item::before{content:"";position:absolute;left:11px;top:0;bottom:0;width:1px;
+  transform:translateX(-50%);background:var(--line-soft)}
+/* The line starts and stops at the outer markers' centres rather than running
+   past them into the padding. */
+.cd-item:first-child::before{top:var(--cd-node)}
+.cd-item:last-child::before{bottom:calc(100% - var(--cd-node))}
+.cd-item:only-child::before{display:none}
+.cd-label{color:var(--muted);padding-top:2px}
+.cd-when{text-align:right;color:var(--text);font-variant-numeric:tabular-nums;
+  padding-top:2px}
+.cd-date{display:block;white-space:nowrap}
+/* The qualifiers hang under the date they are about, never under the stage
+   name — "closes tomorrow" printed beneath the words "Bid submission" reads as
+   a caption for the label rather than for the deadline. */
+.cd-sub,.cd-rel,.cd-note{display:block;white-space:normal;max-width:46ch;
+  margin-left:auto}
+.cd-sub{color:var(--faint);font-size:12px;margin-top:3px}
+.cd-rel{color:var(--text);font-weight:650;font-size:12.5px;margin-top:3px}
+.cd-note{color:var(--faint);font-size:12px;line-height:1.5;margin-top:3px}
+/* Download and clarification windows are context for the bid window, not
+   competitors with it: same timeline, one step quieter. */
+.cd-minor .cd-label,.cd-minor .cd-when{color:var(--faint);font-size:13.5px}
+.cd-minor .cd-mark{color:var(--faint)}
+/* On a phone the date moves under its label rather than fighting it for the
+   same line — at 360px a right-aligned date and a left-aligned stage name
+   collide in the middle and both wrap. The marker column keeps its width so
+   the connector still runs straight through the stack. */
+@media(max-width:680px){
+  .cd-item{grid-template-columns:auto 1fr;gap:0 10px;padding:8px 0;--cd-node:19px}
+  .cd-when{grid-column:2;text-align:left;padding-top:3px}
+  .cd-sub,.cd-rel,.cd-note{margin-left:0}
+}
+
+/* ── Notifications: alert opt-in, watch management, toast ──────────────────
+   The alert control is deliberately *not* styled like the bookmark button it
+   sits under. Bookmarking is a silent, local, reversible nothing; turning on
+   alerts sends a tender id to a server. A button that looked identical to the
+   one above it would be a lie told with CSS, so this one is wide, labelled in
+   words, and only takes the accent once it is actually on. */
+.alertrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 0}
+.alertbtn{display:inline-flex;align-items:center;gap:8px;padding:9px 15px;
+  border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel);
+  color:var(--muted);font-size:14px;font-weight:600;cursor:pointer;
+  transition:color .15s,background .15s,border-color .15s}
+.alertbtn .ic{width:15px;height:15px}
+.alertbtn:hover:not(:disabled){color:var(--text);border-color:var(--accent);
+  background:var(--accent-soft)}
+.alertbtn:focus-visible{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px var(--accent-soft)}
+.alertbtn:disabled{cursor:progress}
+.alertbtn.mini{padding:3px 10px;font-size:12px;font-weight:600;border-radius:7px}
+.alertnote{color:var(--faint);font-size:12.5px;max-width:56ch;line-height:1.5}
+
+/* ── The bell: label → glyph ───────────────────────────────────────────────
+   One control, two states, and a deliberate animation between them.
+
+   OFF is a bell plus a sentence, because "you are about to send a tender id to
+   a server" cannot be inferred from an icon. ON is the bell alone, amber, with
+   a periodic wobble — at that point the sentence has been read and agreed to,
+   and what is left to communicate is only "this is live", which a ringing bell
+   says in no words at all.
+
+   The shrink is not decoration. Between the click and the answer sits a
+   permission prompt and a subscribe round-trip to a push service on the other
+   side of the internet, which is somewhere between 200 ms and several seconds.
+   A button that simply froze for that long reads as broken, so the collapse is
+   started on the click — before anything is known — and runs through the wait.
+   `is-busy` therefore means "asked", not "granted": if the round-trip fails the
+   class comes off and the label springs back, which is the honest picture. */
+.bell-lbl{display:inline-block;overflow:hidden;white-space:nowrap;
+  max-width:40ch;opacity:1}
+/* The transition is armed by the click handler and by nothing else. A bell
+   restored to "on" from the server's answer a moment after load would otherwise
+   play the collapse, and that animation means "you just pressed this" — playing
+   it for a subscription made last week states something untrue. */
+.bell-live .bell-lbl{transition:max-width .42s cubic-bezier(.4,0,.2,1),
+  opacity .22s ease,margin-left .42s cubic-bezier(.4,0,.2,1)}
+.alertbtn.is-busy .bell-lbl,.alertbtn.is-on .bell-lbl,
+.watchbtn.is-busy .bell-lbl,.watchbtn.is-watching .bell-lbl{
+  max-width:0;opacity:0;margin-left:-8px}
+.alertbtn.is-on,.watchbtn.is-watching{color:var(--bell);border-color:var(--bell);
+  background:var(--bell-soft)}
+.alertbtn.is-on:hover:not(:disabled),.watchbtn.is-watching:hover{
+  color:var(--bell);border-color:var(--bell);background:var(--bell-soft)}
+/* Rings for a fifth of the cycle and rests for the rest of it: a permanent
+   wobble beside a page of text is a distraction, and a control that only ever
+   moves once is indistinguishable from a static icon. transform-origin at the
+   crown is what makes it a bell swinging rather than a square spinning. */
+.alertbtn.is-on .ic,.watchbtn.is-watching .ic{
+  transform-origin:50% 12%;animation:bell-ring 3.2s ease-in-out infinite}
+@keyframes bell-ring{
+  0%,78%,100%{transform:rotate(0)}
+  81%{transform:rotate(-15deg)}
+  85%{transform:rotate(12deg)}
+  89%{transform:rotate(-8deg)}
+  93%{transform:rotate(5deg)}
+  96%{transform:rotate(-2deg)}
+}
+/* Both halves go: no wobble, and no shrink either — the label is simply not
+   there in the on state, reached in one frame instead of over 420 ms. */
+@media(prefers-reduced-motion:reduce){
+  .bell-live .bell-lbl{transition:none}
+  .alertbtn.is-on .ic,.watchbtn.is-watching .ic{animation:none}
+}
+
+.notice{padding:13px 16px;border-radius:var(--radius);background:var(--panel);
+  border:1px solid var(--line-soft);color:var(--muted);font-size:14px;line-height:1.6;
+  margin-bottom:18px}
+.notice.warn{border-color:rgba(251,191,36,.4);background:rgba(251,191,36,.07);
+  color:var(--text)}
+.notice.hidden{display:none}
+
+/* Saved searches sit in the same list as saved tenders. They used to carry an
+   accent left border to tell the two apart, but that read as an alert stripe
+   borrowed from .card-flag rather than a second card type, and it duplicated a
+   distinction the content already makes: a saved search shows its filters
+   (.ss-filters below) where a saved tender shows a deadline. Same .card as
+   everywhere else on the site. */
+.savedsearch .card-title{word-break:break-word}
+/* The filter summary: same chip language as an organisation breadcrumb
+   (.orgchip/.orgsep, reused below) so a saved search reads as "these filters"
+   rather than as the querystring that encodes them. flex:1 1 100% claims the
+   first line of the meta row exactly as the old .qs span did, so Notify/Rename/
+   Remove keep falling to the line under it on a narrow card. */
+.ss-filters{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;
+  margin-top:9px;font-size:12px}
+.ss-filters .orgpath{margin-top:0}
+.ss-chip{display:inline-block;padding:2px 9px;border-radius:7px;font-size:12px;
+  line-height:1.5;background:var(--chip-bg);border:1px solid var(--line-soft);color:var(--muted)}
+.ss-chip b{color:var(--text);font-weight:650}
+.ss-kw{background:var(--accent-soft);border-color:transparent;color:var(--lead-chip-text)}
+.ss-empty{color:var(--faint);font-style:italic}
+.sectionnote{color:var(--muted);font-size:13px;line-height:1.6;margin:-4px 0 12px}
+/* No auto margin: .ss-filters already claims the first line of the meta row, so
+   an auto margin here only pushed the toggle into the middle of the second one.
+   .rmbmk keeps its own, which parks Remove on the right edge exactly as it does
+   on a saved tender — the two card types then share one action rhythm. */
+.notifybtn{padding:3px 11px;border-radius:999px;border:1px solid var(--line);
+  background:none;color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer}
+.notifybtn:hover:not(:disabled){border-color:var(--accent);color:var(--accent);
+  background:var(--accent-soft)}
+.notifybtn.is-on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.notifybtn:disabled{opacity:.55;cursor:progress}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-size:13px;
+  font-family:inherit;cursor:pointer}
+.linkbtn:hover{text-decoration:underline}
+.linkbtn.danger{color:var(--lost)}
+.watchtools{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.watchtools .muted{flex:1 1 100%;font-size:12.5px;margin:0}
+.btn{padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:var(--panel);color:var(--text);font-size:14px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--accent);background:var(--accent-soft)}
+.btn.danger{color:var(--lost)}
+.btn.danger:hover{border-color:var(--lost);background:rgba(248,113,113,.08)}
+
+/* A failed subscribe reverts the button silently — the toast is the only place
+   the reason can appear, so it sits above everything and is readable at a
+   glance rather than being a decoration. */
+.notify-toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,140%);
+  max-width:min(560px,calc(100vw - 32px));padding:13px 18px;border-radius:var(--radius);
+  background:var(--elevated);border:1px solid var(--line);color:var(--text);
+  font-size:14px;line-height:1.5;box-shadow:var(--shadow);z-index:200;
+  opacity:0;transition:transform .22s ease,opacity .22s ease;pointer-events:none}
+.notify-toast.show{transform:translate(-50%,0);opacity:1}
+.notify-toast.warn{border-color:rgba(251,191,36,.5)}
+/* A toast that carries an action is the only place the notification opt-in is
+   offered at the moment it is wanted, so it has to be laid out as a control and
+   not as a sentence with a link buried in it. */
+.notify-toast{display:flex;align-items:center;gap:14px}
+/* Which glyph: the bell means "the server will notify you", the bookmark means
+   "kept on this device" — the same split the icons carry everywhere else on the
+   site (see _icons.html), so a toast about a save never wears the bell and a
+   toast about a subscription never wears the bookmark. */
+.toast-icon{flex:none;width:18px;height:18px;color:var(--accent)}
+.toast-icon .ic{width:100%;height:100%}
+.notify-toast.warn .toast-icon{color:var(--warn)}
+.toast-text{flex:1 1 auto}
+.toast-action{flex:none;padding:7px 14px;border-radius:var(--radius-sm);
+  border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);
+  font:inherit;font-size:13px;font-weight:650;cursor:pointer}
+.toast-action:hover{background:var(--accent);color:#fff}
+@media(prefers-reduced-motion:reduce){.notify-toast{transition:none}}

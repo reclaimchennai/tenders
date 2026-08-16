@@ -1,0 +1,69 @@
+{# The rendered body of one document preview.
+
+   Served two ways from the same markup: inlined by the standalone /view page,
+   and fetched as a fragment by the in-page modal (/view/<id>?partial=1). The
+   PDF and image cases carry no server-rendered content — the browser draws
+   those from /doc — so this file is really the spreadsheet/text renderer. #}
+{% from "_icons.html" import icon %}
+{%- if not captured %}
+  <p class="empty">{{ icon('cross') }} This document was deleted by the source portal
+     before it could be captured.</p>
+{%- elif view.kind == 'pdf' %}
+  {# Rendered page-by-page onto canvases by docview.js. Many mobile browsers
+     hand a PDF in an <iframe> to the download manager instead of drawing it,
+     so the archive draws it itself. #}
+  <div class="dv-pdf" data-pdf="/doc/{{ doc.id }}?inline=1">
+    <div class="dv-pages" role="document" aria-label="{{ doc.filename }}"></div>
+    <p class="dv-status">Loading document…</p>
+  </div>
+{%- elif view.kind == 'image' %}
+  <div class="dv-image"><img src="/doc/{{ doc.id }}?inline=1" alt="{{ doc.filename }}"></div>
+{%- elif view.error %}
+  <p class="empty">{{ icon('question') }} {{ view.error }}
+     Use <b>Download</b> to open the original file.</p>
+{%- elif view.kind == 'sheet' %}
+  <div class="dv-sheet">
+    {%- if view.sheets|length > 1 %}
+    <div class="dv-tabs" role="tablist" aria-label="Sheets">
+      {%- for s in view.sheets %}
+      <button type="button" class="dv-tab{{ ' on' if loop.first }}" role="tab"
+              aria-selected="{{ 'true' if loop.first else 'false' }}"
+              data-sheet="{{ loop.index0 }}">{{ s.name }}</button>
+      {%- endfor %}
+    </div>
+    {%- endif %}
+    {%- for s in view.sheets %}
+    <div class="dv-sheetpane{{ ' on' if loop.first }}" role="tabpanel" data-pane="{{ loop.index0 }}">
+      {%- if s.truncated_rows or s.truncated_cols %}
+      <p class="dv-note">{{ icon('alert') }}
+        Large sheet — showing
+        {%- if s.truncated_rows %} the first {{ s.rows|length }} of
+          {{ s.rows|length + s.truncated_rows }} rows{% endif %}
+        {%- if s.truncated_rows and s.truncated_cols %} and{% endif %}
+        {%- if s.truncated_cols %} the first {{ s.cols }} columns{% endif %}.
+        <a href="/doc/{{ doc.id }}">Download the full file</a> for everything.</p>
+      {%- endif %}
+      <div class="dv-tablewrap" tabindex="0">
+        <table class="dv-table">
+          <thead><tr>{% for c in s.header %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+          <tbody>
+          {%- for row in s.rows %}
+            <tr>{% for c in row %}<td>{{ c }}</td>{% endfor %}</tr>
+          {%- endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {%- endfor %}
+  </div>
+{%- elif view.kind == 'text' %}
+  {%- if view.truncated_text %}
+  <p class="dv-note">{{ icon('alert') }} Long file — showing the beginning only.
+     <a href="/doc/{{ doc.id }}">Download the full file</a>.</p>
+  {%- endif %}
+  <pre class="dv-text" tabindex="0">{{ view.text }}</pre>
+{%- else %}
+  <p class="empty">{{ icon('question') }} This file type
+     ({{ doc.filename.rsplit('.',1)[-1]|upper }}) can’t be previewed in the browser.
+     Use <b>Download</b> to open it.</p>
+{%- endif %}

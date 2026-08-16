@@ -1,0 +1,175 @@
+# Configuration for the TN Tenders mirror & scraper.
+# Paths are resolved relative to the project root unless absolute.
+
+[site]
+base_url = "https://tntenders.gov.in/nicgep/app"
+host = "https://tntenders.gov.in"
+# Public listing entry points (NIC GePNIC)
+active_page = "https://tntenders.gov.in/nicgep/app?page=FrontEndLatestActiveTenders&service=page"
+archive_page = "https://tntenders.gov.in/nicgep/app?page=FrontEndTendersInArchive&service=page"
+# Captcha-free enumeration root: the organisation tree of currently listed tenders.
+active_org_page = "https://tntenders.gov.in/nicgep/app?page=FrontEndTendersByOrganisation&service=page"
+
+[paths]
+db = "data/tenders.db"
+docs = "data/docs"
+html = "data/html"
+captcha = "data/captcha"
+
+[scrape]
+# Politeness: minimum seconds between requests, plus random jitter up to jitter_s.
+min_interval_s = 4.0
+jitter_s = 3.0
+timeout_s = 60
+max_retries = 4
+user_agent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+# Hard cap on requests per run as a kill-switch safety. 0 = unlimited.
+max_requests_per_run = 0
+# Captcha solve attempts before giving up on a tender's document gate.
+# Each retry is an independent fresh captcha, so this multiplies success odds.
+captcha_attempts = 15
+# Set true to be prompted to type captchas manually instead of OCR (useful for backfill).
+captcha_manual = false
+
+[forward]
+# Tenders closing within this many days get same-day priority capture.
+priority_window_days = 3
+# Already-closed tenders detailed per cycle for metadata recovery. Their
+# documents are gone, so this is pure register enrichment and must never crowd
+# out the live capture it shares a cycle with: the historical backfills queue
+# tens of thousands of them, which is many hours of requests. 0 = unlimited.
+backfill_detail_max_per_cycle = 400
+
+[latest]
+# Newest-published-first poll of FrontEndLatestActiveTenders — the only pass
+# fast enough to see a tender that is published and closed the same afternoon.
+# The organisation-tree cycle takes hours; this runs inside it.
+enabled = true
+# Poll period, and the dominant term in both of the archive's honest limits.
+# Measured against the live portal on 2026-08-09 (4s + 0-3s politeness spacing):
+#
+#   poll (2 requests)            ~7-11s   -> metadata + red flag recorded
+#   urgent capture (5-6 requests)  ~35s   -> detail page + its documents on disk
+#
+# So a tender is *flagged* if its bidding window outlasts one poll period plus a
+# poll, ~5min 15s, and its *documents* are saved if it outlasts that plus a
+# capture, ~6min — or ~9min if it is eighth in a poll's urgent queue. Both
+# assume the portal attached the files at publication; when it does not, the
+# floor is recapture_min_s below, not anything here.
+poll_interval_s = 300
+# Pages to walk when page 1 is entirely new. 10 rows/page, and the walk stops at
+# the first page with nothing new on it, so this only binds during a burst.
+max_pages = 8
+# Fewer retries than the document gate: a failed poll simply happens again
+# after the backoff below, so burning 15 captchas on it is waste, not insurance.
+captcha_attempts = 6
+# Consecutive failures double the interval up to this ceiling, and one success
+# puts it straight back. This earned its keep: the surface spent a day rejecting
+# every POST (a stale-link rewind that read like a bad captcha in the log), and
+# the backoff is what kept that from being a captcha POST every five minutes.
+max_backoff_s = 3600
+# Runaway stop. max_requests_per_run = 0 means nothing else bounds this.
+# 12 polls/hour is 24 requests, so this leaves ~30 urgent captures an hour;
+# beyond that the poll skips a turn and the forward pass picks up the rest.
+max_requests_per_hour = 180
+# A newly-seen tender jumps the queue if its bidding window is shorter than
+# this (it is the red flag itself) or if it closes within urgent_remaining_hours.
+urgent_window_hours = 24.0
+urgent_remaining_hours = 6.0
+max_urgent_captures = 8
+# Insurance against the portal publishing a tender before attaching its files:
+# an urgent tender is re-probed while it is this young, no more often than
+# recapture_min_s. Beyond that the files are absent, not late. Note this has
+# never actually been observed — across 8,130 captured documents, none gained a
+# download link after we had already read its detail page — but the poller has
+# not yet run long enough to have looked at many tenders minutes after they
+# were published, which is the only window in which it could happen.
+late_link_window_hours = 3.0
+recapture_min_s = 600
+# Corrigendum sweep. Rows are ordered by the tender's publication date, not the
+# corrigendum's, so page 1 says nothing about a fresh amendment to an older
+# tender — the sweep must be full (0 = all pages), hence infrequent.
+corrigendum_interval_s = 21600
+corrigendum_max_pages = 0
+corrigendum_max_captures = 25
+
+[capture_retry]
+# Progressive retry sweep (capture_retry.py) that gets a newly-discovered open
+# tender's detail page and documents read on a fast schedule — 1m, 5m, 15m,
+# 30m, then hourly (doc_lifecycle.RETRY_SCHEDULE_S / RETRY_INTERVAL_S) — rather
+# than waiting for forward_capture's once-a-cycle pass, which for a several-
+# thousand-row live queue can lag hours behind a tender the fast [latest] poll
+# just discovered. Ticked alongside [latest]'s watch at the same call sites, so
+# it costs no extra network activity when there is nothing due.
+enabled = true
+# How often this sweep itself checks the DB for anything due. Deliberately much
+# finer than the schedule's own steps so a 1-minute retry actually lands within
+# a few seconds of 1 minute, not whenever the next check happens to fall.
+check_interval_s = 20
+# Tenders taken per sweep. Kept small: at check_interval_s this runs ~180
+# times an hour, so a backlog drains fast without ever taking a large bite.
+batch_size = 10
+
+[integrity]
+# Re-downloading a captured file to hash-compare it is the only way to notice a
+# quietly re-published document, and it is expensive: re-checking every open
+# tender's ~5,400 captured files every 12h would eat most of the politeness
+# budget forever. So the sweep is capped per run and per tender, and a changed
+# "Document Size (in KB)" on the detail page triggers a targeted re-check for
+# free. Set recheck_max_per_run = 0 to disable modification detection.
+recheck_max_per_run = 40
+recheck_max_per_tender = 5
+
+[ocr]
+# Skip OCR entirely if tesseract is unavailable; pdf text-layer extraction still runs.
+enabled = true
+# A PDF page yielding fewer than this many chars from its text layer is treated as scanned.
+min_chars_per_page = 40
+# Cap pages OCR'd per document to avoid pathological PDFs stalling the pipeline.
+max_ocr_pages = 60
+
+[web]
+host = "127.0.0.1"
+port = 8000
+page_size = 25
+
+[push]
+# Web Push (VAPID) identity. The private key is a *path*, never the key itself:
+# this file is readable to anyone who can read the repo, and the key is the
+# credential that lets a server push to every subscriber's device. The file is
+# created 0600 inside a 0700 directory by `tenders-push-keys`, and it is not in
+# any database backup — those copy tenders.db and nothing else.
+#
+# Rotating it invalidates every existing subscription (browsers pin the public
+# half into the subscription they created), so back the file up out of band.
+vapid_key_file = "data/secrets/vapid_private.pem"
+# Contact for the push service operator, per RFC 8292. It is sent with every
+# push and is how Google or Mozilla would reach the operator about abuse.
+subject = "mailto:tenders@reclaimchennai.city"
+
+[watch]
+# "New" means published by the portal, not first seen by us. See watches.py for
+# why all four of these exist rather than one; the short version is that this
+# archive is still recovering 2020-2026 history at tens of thousands of rows a
+# day, and any single rule would eventually let a batch of it through.
+#
+# A tender is only announced if its own published_date is within this many days.
+fresh_days = 7
+# An award may be older than a publication and still be news — the portal posts
+# AOC documents weeks after closing. Every award the sweep is backfilling today
+# is dated 2025-08 to 2026-02, so this excludes the sweep and admits a real one.
+award_fresh_days = 45
+# No single watch may notify more often than this, whatever matches.
+min_gap_minutes = 60
+# Pushes per device per pass; the rest wait for the next pass, unsent and so
+# not yet recorded as notified.
+max_pushes_per_subscription = 3
+# Candidate rows examined per watch per pass. The freshness floor keeps the
+# window to a day or two, in which the whole portal publishes ~600 tenders.
+scan_limit = 1000
+# Age at which per-watch "already told them about this tender" rows are dropped.
+# Anything this old is excluded by fresh_days anyway, so the row cannot change
+# a decision any more.
+prune_days = 60
+# Tenders named in a batched notification before it says "and N more".
+batch_names = 3

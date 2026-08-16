@@ -1,0 +1,19 @@
+{# Render a GePNIC "A||B||C" organisation chain as hierarchical breadcrumb chips,
+   top-level department highlighted. Each chip filters browse by the chain up to
+   and including itself, which the org filter's prefix LIKE turns into "this
+   department and everything under it". #}
+{% macro org_chips(chain) %}
+{%- if chain -%}
+{%- set parts = chain.split('||') -%}
+<span class="orgpath">
+{%- for part in parts -%}
+  {%- set p = part.strip() -%}
+  {%- if p -%}
+    <a class="orgchip{{ ' lead-chip' if loop.first else '' }}"
+       href="/browse?org={{ parts[:loop.index]|map('trim')|join('||')|urlencode }}">{{ p|pretty }}</a>
+    {%- if not loop.last %}<span class="orgsep">›</span>{% endif -%}
+  {%- endif -%}
+{%- endfor -%}
+</span>
+{%- endif -%}
+{% endmacro %}

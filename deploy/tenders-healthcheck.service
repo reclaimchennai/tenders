@@ -1,0 +1,45 @@
+[Unit]
+Description=TN Tenders mirror — watchdog: detect a wedged web frontend and restart it
+# Deliberately no After=tenders-web.service and no Requires=. This unit must be
+# able to run when the web service is in any state at all, including the state
+# that caused it to be written: alive, "active (running)", port open, serving
+# nothing. A dependency on the unit it polices would only give the watchdog a
+# way to be blocked by the thing it is watching.
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/projects/tender
+# Exits non-zero whenever it had to act (1 restarted+recovered, 2 restarted+still
+# down, 3 storm guard tripped, 4 restart failed), so `systemctl --user
+# list-units --failed` names the incident without anyone grepping the journal.
+# That is the intended alarm, so there is no SuccessExitStatus= here to swallow
+# it, and no Restart= — a watchdog that retries itself would multiply the very
+# restart storm its guard exists to stop. The timer is the retry.
+ExecStart=%h/projects/tender/.venv/bin/python %h/projects/tender/scripts/healthcheck.py
+# A healthy run takes ~0.03s. A measured heal of a real wedge (tenders-web
+# SIGSTOPped on 2026-08-15) took 43s end to end: 40s to confirm the wedge —
+# 3 probes x 10s plus 2 x 5s spacing — then 3s for the restart and the recovery
+# probe. The worst case is much longer: a process stuck in an uninterruptible
+# syscall makes systemd wait tenders-web's full 90s TimeoutStopSec before
+# SIGKILL, and recovery polling then allows another 60s. The ceiling below
+# leaves room for all of it; a shorter one would kill the watchdog mid-restart
+# and leave the site down, which is the opposite of the job.
+TimeoutStartSec=300
+# Unlike every other unit here, this one does NOT yield. Nice=10 and
+# IOSchedulingClass=idle are set on the scraper, extract and sweep units
+# precisely because they may be starved in favour of the site — but the check
+# that notices the site is gone must not be starved by the same runaway that is
+# causing the outage. On 2026-08-15 the box was saturated by tenders-extract; a
+# watchdog at idle I/O priority would have been queued behind it and missed the
+# whole event. Best-effort priority 0 is the *most* favourable setting available
+# to a --user unit: negative Nice needs CAP_SYS_NICE and IOSchedulingClass=
+# realtime needs CAP_SYS_ADMIN, neither of which uid 1001 has (RLIMIT_NICE is 0
+# here), and a unit that asks for them simply fails to start — a watchdog that
+# cannot run is worse than one that merely runs at normal priority.
+Nice=0
+IOSchedulingClass=best-effort
+IOSchedulingPriority=0
+# Tiny by construction: one HTTP GET and a JSON file. If it is anywhere near
+# this it has a leak, and a leaking watchdog on an already-starved box is a
+# second outage.
+MemoryMax=128M

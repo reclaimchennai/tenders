@@ -1,0 +1,70 @@
+[project]
+name = "tenders"
+version = "0.1.0"
+description = "Mirror & archive of Tamil Nadu government e-procurement tenders and their documents"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "pillow>=10.0",
+    "pytesseract>=0.3.10",
+    "pdfplumber>=0.11",
+    "pdf2image>=1.17",
+    "openpyxl>=3.1",
+    "xlrd>=2.0",
+    "tenacity>=8.2",
+    "python-dateutil>=2.9",
+    "numpy>=1.26",
+    "tqdm>=4.65",
+    # Web Push (RFC 8030/8291/8292). MPL-2.0, used unmodified, so its
+    # file-level copyleft reaches nothing of ours; not GPL/AGPL. Brings py-vapid
+    # (MPL-2.0) and http-ece (MIT) with it.
+    "pywebpush>=2.0",
+]
+
+[project.optional-dependencies]
+# Trained captcha solver (CNN). Optional: the system runs (with Tesseract
+# fallback) without it. Install with: pip install -e ".[ml]"
+ml = ["torch>=2.2"]
+# Test-only. httpx is what starlette's TestClient drives the app through, and
+# the watch matcher is only trustworthy if it can be asserted to agree with the
+# real /browse endpoint rather than with a second copy of its argument list.
+dev = ["pytest>=8.0", "httpx>=0.27"]
+
+[project.scripts]
+tenders-import = "tenders.cli:import_csv_cmd"
+tenders-backfill = "tenders.cli:backfill_cmd"
+tenders-forward = "tenders.cli:forward_cmd"
+tenders-latest = "tenders.cli:latest_cmd"
+tenders-corrigendum = "tenders.cli:corrigendum_cmd"
+tenders-status-backfill = "tenders.cli:status_backfill_cmd"
+tenders-cancelled = "tenders.cli:cancelled_cmd"
+tenders-shortnames = "tenders.cli:shortnames_cmd"
+tenders-unzip = "tenders.cli:unzip_cmd"
+tenders-redflags = "tenders.cli:redflags_cmd"
+tenders-run = "tenders.cli:run_cmd"
+tenders-verify = "tenders.cli:verify_cmd"
+tenders-lag = "tenders.cli:lag_cmd"
+tenders-detail = "tenders.cli:detail_cmd"
+tenders-extract = "tenders.cli:extract_cmd"
+tenders-index = "tenders.cli:index_cmd"
+tenders-web = "tenders.cli:web_cmd"
+tenders-push-keys = "tenders.cli:push_keys_cmd"
+tenders-watch-run = "tenders.cli:watch_run_cmd"
+tenders-stats = "tenders.cli:stats_cmd"
+tenders-captcha-collect = "tenders.cli:captcha_collect_cmd"
+tenders-captcha-label = "tenders.cli:captcha_label_cmd"
+tenders-captcha-train = "tenders.cli:captcha_train_cmd"
+tenders-captcha-corpus = "tenders.cli:captcha_corpus_cmd"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

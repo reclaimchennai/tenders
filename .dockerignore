@@ -1,0 +1,57 @@
+# What the build context is allowed to contain.
+#
+# Deny-by-default, for the same reason .gitignore is: enumerating what to
+# exclude fails the moment a new directory appears, and here the failure is not
+# merely embarrassing but slow enough to look like a hang. `data/` on this
+# checkout is 75 GB (69 GB of it captured documents, 2.5 GB of database
+# backups). Docker tars the whole context and ships it to the daemon before it
+# reads the first line of the Dockerfile, so a single missing exclusion turns a
+# 90-second build into a 75 GB copy — and, worse, bakes subscriber endpoints
+# and the VAPID private key into an image layer that anyone who pulls the image
+# can read back.
+#
+# So: exclude everything, then re-admit exactly the paths the image needs.
+*
+
+# The package and its build metadata.
+!pyproject.toml
+!src/
+
+# config.toml is committed and holds no secrets — paths, tuning and rate limits
+# only (the VAPID key is a *path* into data/secrets, never the key itself), so
+# it belongs in the image as the default configuration. TENDERS_CONFIG or a
+# bind mount overrides it at run time.
+!config.toml
+
+# The long-running loops and the two self-healing jobs. scripts/ is not part of
+# the installed package — the systemd units invoke these by path — so they have
+# to be copied in explicitly rather than arriving with `pip install`.
+!scripts/
+
+# The unit files themselves are not used inside the container, but the
+# entrypoint and the supervisor config live alongside them and every process
+# definition in supervisord.conf cites the unit it replicates. Keeping them in
+# the image means the reasoning is readable from inside a running container.
+!deploy/
+
+!README.md
+
+# ---------------------------------------------------------------------------
+# Re-excluded after the re-admissions above, because `!src/` would otherwise
+# drag these in.
+# ---------------------------------------------------------------------------
+
+# Build artefacts of a *host* install. An egg-info directory copied into the
+# image describes a package installed at /home/…/projects/tender, and pip will
+# happily believe it.
+**/*.egg-info/
+**/__pycache__/
+**/*.pyc
+
+# ARCHITECTURE.md is deliberately absent from this list. It is the internal
+# deployment runbook — it names the production host, its address, its home
+# directory paths and a second person who has nothing to do with this image —
+# and .gitignore excludes it from the public repository for exactly that
+# reason. A file that is too sensitive to publish in a git repo is too
+# sensitive to publish in a container image, and images get pushed to
+# registries far more casually than commits get pushed to remotes.

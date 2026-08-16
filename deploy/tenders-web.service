@@ -1,0 +1,33 @@
+[Unit]
+Description=TN Tenders mirror — web frontend (FastAPI/uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/tender
+# Bind on all interfaces so the dockerised Caddy can reach it via
+# host.docker.internal; the port is not in DNS, only Caddy proxies to it.
+ExecStart=%h/projects/tender/.venv/bin/tenders-web --host 0.0.0.0 --port 8013
+Restart=always
+RestartSec=5
+
+# Memory budget. Measured on 2026-08-15: this unit sits at 275MB resident with a
+# 275MB peak — the read-side pragmas in db.py ask for a 64MB page cache and a
+# 1GB mmap window, but mmap'd pages are file-backed and reclaimable, so they do
+# not count against these limits the way anonymous memory does.
+#
+# MemoryHigh=1G is ~3.7x the steady state: enough headroom for a burst of
+# concurrent PDF previews and OG-card renders, and it throttles rather than
+# kills — the kernel applies reclaim pressure and the process slows down.
+# MemoryMax=2G is the hard stop. Being OOM-killed here is genuinely cheap:
+# Restart=always brings the site back in 5 seconds, and a 5-second gap is
+# vastly better than the outcome this cap is protecting against — on
+# 2026-08-15 the web app was starved by a runaway sibling and wedged for an
+# unknown period while systemd reported "active (running)". A bounded, visible
+# restart beats an unbounded, invisible wedge.
+MemoryHigh=1G
+MemoryMax=2G
+
+[Install]
+WantedBy=default.target

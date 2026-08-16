@@ -1,0 +1,39 @@
+[Unit]
+Description=TN Tenders mirror — continuous scraper/downloader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/projects/tender
+# The captcha solver is the local CNN in src/tenders/captcha_model.py — no
+# external CLI, no network service, nothing to put on PATH for it. The PATH is
+# kept explicit only so tesseract/pdftoppm resolve for the extraction pass.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+# Continuous loop: ~15 min pause between cycles, cancelled sweep every 6 cycles.
+ExecStart=%h/projects/tender/.venv/bin/tenders-run --cycle-pause 900 --cancelled-every 6
+Restart=always
+RestartSec=30
+# Work is idempotent and resumes from DB state, so a mid-cycle stop is safe;
+# don't wait the default 90s for the long enumeration pass to finish.
+TimeoutStopSec=20
+
+# Memory budget. Measured on 2026-08-15: 1.36GB resident, 4.5GB peak. The peak
+# is high for what this does — enumerate listings and download documents — and
+# the incident window is inside the measurement, so it is not treated as a
+# proven requirement.
+#
+# MemoryHigh=2G is set above the 1.36GB steady state on purpose: MemoryHigh is
+# not a target but a throttle, and pinning it at or below where this unit
+# normally lives would leave it permanently in reclaim, slowing the one job on
+# this box whose work cannot be repeated later (the portal deletes documents at
+# close). MemoryMax=4G sits just under the observed peak so a true runaway is
+# stopped, and the comment above already establishes that stopping is safe here:
+# the work is idempotent and resumes from database state, Restart=always brings
+# it back in 30s, and any half-finished document is re-probed by the retry
+# schedule in doc_lifecycle.py.
+MemoryHigh=2G
+MemoryMax=4G
+
+[Install]
+WantedBy=default.target

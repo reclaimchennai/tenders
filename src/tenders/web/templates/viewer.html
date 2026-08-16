@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_share.html" import share_row %}
+{% block title %}{{ doc.filename }} — TN Tenders Mirror{% endblock %}
+{% block content %}
+<nav class="crumbs">
+  <a href="/">Dashboard</a> / <a href="/tender/{{ doc.tender_id }}">{{ doc.tender_id }}</a>
+  / <span>{{ doc.filename }}</span>
+</nav>
+
+<div class="viewer-head">
+  <h1 class="viewer-title">{{ doc.filename }}</h1>
+  <div class="viewer-actions">
+    {% if captured %}
+    {{ share_row('/view/' ~ doc.id, doc.filename, 'doc-' ~ doc.id) }}
+    <a class="sharebtn dlbtn" href="/doc/{{ doc.id }}" title="Download" aria-label="Download">{{ icon('download') }}</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="viewer-body">{% include "_docview.html" %}</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/docview.js?v={{ css_v }}" defer></script>
+{% endblock %}

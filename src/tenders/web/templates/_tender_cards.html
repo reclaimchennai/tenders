@@ -1,0 +1,30 @@
+{% from "_macros.html" import org_chips %}
+{% from "_icons.html" import icon %}
+{% for r in tenders %}
+{% set st = tender_state(r.closing_date, r.published_date, r.cancelled_at, r.awarded_at) %}
+<li class="card">
+  <span class="card-state {{ st.css }}">{{ st.label }}</span>
+  {% if r.tender_type %}<span class="orgchip">{{ r.tender_type }}</span>{% endif %}
+  <a class="card-title" href="/tender/{{ r.tender_id }}">{{ r.short_name or headline(r) or r.tender_id }}</a>
+  {{ org_chips(r.organisation_chain) }}
+  <div class="card-meta">
+    {# On an awarded card the estimate is qualified and the accepted amount gets
+       its own colour: two unlabelled ₹ figures side by side would be read as
+       one number stated twice. #}
+    {% if r.tender_value_raw and r.tender_value_raw not in ('NA','Nil') %}<span class="val">{{ 'Est. ' if r.awarded_at }}₹ {{ r.tender_value_raw }}</span>{% endif %}
+    {% if r.award_value_num %}<span class="val-award">Won {{ r.award_value_num|inr }}</span>{% endif %}
+    {% if r.location %}<span>{{ icon('pin') }} {{ r.location|pretty }}</span>{% endif %}
+    {# Both of these are already columns on the row the list query selected, so
+       a card states when the tender was published and when its result came out
+       without any page touching raw_json — which is what put 137 ms on /browse
+       the last time a list page wanted a field that lives in JSON.
+       "Closes in N days" keeps its place at the end, unqualified, because that
+       is the line people scan the list for. #}
+    {% if r.published_date %}<span class="card-when">Published {{ r.published_date|day }}</span>{% endif %}
+    {% if r.awarded_at %}<span class="card-when">Result {{ r.awarded_at|day }}</span>{% endif %}
+    {% if r.closing_date %}<span>{{ closing_line(r.closing_date) }}</span>{% endif %}
+    <span class="tid">{{ r.tender_id }}</span>
+  </div>
+  {% if r.snip %}<div class="snip">{{ r.snip|safe }}</div>{% endif %}
+</li>
+{% endfor %}

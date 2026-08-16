@@ -1,0 +1,9 @@
+{% macro pager(pag, base_url) %}
+{% if pag and pag.pages > 1 %}
+<nav class="pager">
+  {% if pag.has_prev %}<a href="{{ base_url }}&page={{ pag.page - 1 }}">‹ Prev</a>{% endif %}
+  <span class="muted">Page {{ pag.page }} of {{ pag.pages }} ({{ pag.total }} results)</span>
+  {% if pag.has_next %}<a href="{{ base_url }}&page={{ pag.page + 1 }}">Next ›</a>{% endif %}
+</nav>
+{% endif %}
+{% endmacro %}

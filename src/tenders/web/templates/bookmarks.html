@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Saved — TN Tenders Mirror{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>{{ icon('bookmark') }} Saved</h1>
+  <p class="lead">Searches and tenders you saved on this device. Both are stored
+     locally in your browser — nothing is sent to a server unless you turn on
+     notifications for something.</p>
+</section>
+
+{# Saved searches come first: a search is the thing that keeps producing new
+   answers, so it is what a returning user came back for. The two lists are
+   deliberately not one list — a saved search replays as a query and can notify,
+   a saved tender is a single fixed record — and the section headings say which
+   is which rather than relying on the cards looking different. #}
+<section id="searches">
+  <div class="sechead"><h2>{{ icon('bell') }} Saved searches</h2></div>
+  <p class="sectionnote">Each one replays your filters against the whole archive,
+     so it keeps answering as new tenders arrive.{% if push_enabled %} Turn on
+     <b>Notify me</b> to be told when a genuinely new tender matches — that is
+     the only thing that sends the search to the server.{% endif %}</p>
+  <ul class="results" id="search-list"></ul>
+  <p class="empty" id="search-empty" style="display:none">
+    No saved searches. Run any search on <a href="/browse">Search</a> and press
+    the {{ icon('bell') }} <b>Alert me</b> button beside the result count.
+  </p>
+</section>
+
+<section id="tenders">
+  <div class="sechead"><h2>{{ icon('bookmark') }} Saved tenders</h2></div>
+  {% if push_enabled %}
+  <p class="sectionnote">Press <b>Alert me</b> on a row to be notified when that
+     tender is amended, cancelled or awarded. That sends one tender id to the
+     server; the rest of this list stays in your browser.</p>
+  {% endif %}
+  <ul class="results" id="bookmark-list"></ul>
+  <p class="empty" id="bookmark-empty" style="display:none">
+    No saved tenders yet. Open any tender and tap <b>Bookmark</b> to save it here.
+  </p>
+</section>
+
+{% if push_enabled %}
+<section class="watchtools" id="notifications">
+  <div class="sechead" style="flex:1 1 100%"><h2>{{ icon('bell') }} Notifications on this device</h2></div>
+  <div id="notify-status" class="notice hidden" style="flex:1 1 100%"></div>
+  <button type="button" class="btn" id="notify-enable">Enable notifications</button>
+  <button type="button" class="btn" id="notify-test">Send a test notification</button>
+  <button type="button" class="btn danger" id="notify-forget">Turn off &amp; delete everything</button>
+  <p class="muted">Notifications need a push address from your browser, which is
+     the one thing this site has to store about your device. “Turn off &amp;
+     delete everything” removes that address and every search and tender alert
+     attached to it from the server, in one action. Your saved lists above stay
+     in your browser.</p>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="/static/bookmarks.js?v={{ css_v }}" defer></script>
+{% endblock %}

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% from "_macros.html" import org_chips %}
+{% from "_icons.html" import icon %}
+{% block content %}
+
+<section class="hero dash-hero">
+  <h1>Tamil Nadu Procurement Dashboard</h1>
+  <p class="lead">Live view of government tenders — preserved before the official
+     portal deletes them. <a href="/browse">Search the full archive {{ icon('arrow') }}</a></p>
+</section>
+
+{# ---- Big live-tenders departure board ---- #}
+{% if ticker %}
+<div class="board board-lg" aria-label="Open tenders, most recently published first">
+  {# The heading names both halves of what the query does, because a board that
+     said only RECENTLY PUBLISHED was read as "everything, newest first" — which
+     is what it used to be. #}
+  <div class="board-head"><span class="board-dot"></span> LIVE · RECENTLY PUBLISHED</div>
+  {# The duplicated list is what makes translateX(-50%) seamless: half the
+     track is exactly one full copy. #}
+  <div class="board-window">
+  <div class="board-track">
+    {% for c in (ticker + ticker) %}
+    <a class="flap" href="/tender/{{ c.tender_id }}">
+      {# Deadline first, calendar date below. On a card that moves past the
+         reader in a few seconds, "Closes in 5 days" is legible at a glance and
+         "2026-08-13" is arithmetic they have no time to do. #}
+      <span class="flap-time">
+        <span class="flap-state {{ c.state.css }}">{{ c.state.label }}</span>
+        <span>{{ c.relative or 'no closing date' }}</span>
+      </span>
+      <span class="flap-name">{{ c.headline }}</span>
+      <span class="flap-amt">{% if c.tender_value_num %}{{ c.tender_value_num|inr }}{% elif c.tender_type %}{{ c.tender_type }}{% else %}Value not disclosed{% endif %}</span>
+      <span class="flap-when">{{ icon('clock') }} {{ c.when }}</span>
+      <span class="flap-sub">
+        {# Ticker shows the organisation only; the zone/ward is kept in the data
+           for the ward-level maps, but it is noise in a one-line flap. #}
+        {% if c.location %}{{ icon('pin') }} {{ c.location|place }}{% endif %}
+        {% if c.organisation_chain %} · {{ c.organisation_chain.split('||')[0]|pretty }}{% endif %}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+  </div>
+</div>
+{% endif %}
+
+{# ---- Summary strip ----
+   Document-pipeline counts (captured / missing / full-text indexed) used to
+   sit here too. They are health-check figures, not something a reader needs
+   to see to judge the archive — the same numbers are already served as JSON
+   at /healthz for anyone who actually wants them (the watchdog does, every
+   two minutes). Kept: the one number that answers what a visitor actually
+   came to ask, "how much of this is there". #}
+<div class="stats">
+  <span class="stat"><b>{{ "{:,}".format(stats.tenders_total) }}</b> tenders archived</span>
+</div>
+
+{# ---- Headline cards ---- #}
+<section class="dash dash-top">
+  <div class="dcard">
+    <div class="dlabel">Live tenders</div>
+    <div class="dbig">{{ "{:,}".format(dash.live) }}</div>
+    <div class="dsub">{{ dash.value_active }} on offer right now</div>
+  </div>
+  <div class="dcard dcard-warn">
+    <div class="dlabel">{{ icon('alert') }} Short bidding windows</div>
+    <div class="dbig">{{ dash.suspicious_count }}</div>
+    <div class="dsub">tenders open under 24 h — a rigging red flag</div>
+    <div class="dcard-links">
+      {% if dash.suspicious %}<a class="dlink" href="#watch">Review watchlist</a>{% endif %}
+      <a class="dlink dlink-hist" href="/history">{{ icon('flag') }} History</a>
+    </div>
+  </div>
+</section>
+
+{# ---- Charts: published (above), closing soon (below) ---- #}
+{% macro barchart(chart, caption) %}
+<div class="chartbox">
+  <div class="bars" role="img" aria-label="{{ caption }}: {{ chart.bars|map(attribute='value')|join(', ') }}">
+    {% for b in chart.bars %}
+    <div class="bar-col">
+      <div class="bar-track">
+        <div class="bar" style="height:{{ b.pct }}%"><span>{{ b.full }} · {{ b.value }} tenders</span></div>
+      </div>
+      <span class="bar-label">{{ b.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endmacro %}
+<section class="charts">
+  <div class="dcard dcard-chart">
+    <div class="dlabel">Published <span class="drange">{{ dash.published_chart.range }}</span></div>
+    {{ barchart(dash.published_chart, 'Tenders published per day') }}
+  </div>
+  <div class="dcard dcard-chart">
+    <div class="dlabel">Closing soon <span class="drange">{{ dash.closing_chart.range }}</span></div>
+    {{ barchart(dash.closing_chart, 'Tenders closing per day') }}
+  </div>
+</section>
+
+{% if dash.suspicious %}
+<section id="watch">
+  <div class="sechead"><h2>{{ icon('alert') }} Short-bidding-window watch</h2>
+    <span class="count">publish-to-close under 24 hours · <a href="/history">{{ icon('flag') }} History</a></span></div>
+  <ul class="results">
+    {% for s in dash.suspicious %}
+    {% set st = tender_state(s.closing_date, s.published_date, s.cancelled_at, s.awarded_at) %}
+    <li class="card card-flag">
+      <span class="card-state {{ st.css }}">{{ st.label }}</span>
+      {% if s.tender_type %}<span class="orgchip">{{ s.tender_type }}</span>{% endif %}
+      <a class="card-title" href="/tender/{{ s.tender_id }}">{{ s.short_name or headline(s) }}</a>
+      <span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>
+      {{ org_chips(s.organisation_chain) }}
+      <div class="card-meta">
+        {% if s.tender_value_num %}<span class="val">{{ s.tender_value_num|inr }}</span>{% endif %}
+        {% if s.location %}<span>{{ icon('pin') }} {{ s.location|pretty }}</span>{% endif %}
+        <span>Published {{ s.published_date|daytime }}</span>
+        <span>{{ closing_line(s.closing_date) }}</span>
+        <span class="tid">{{ s.tender_id }}</span>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% endblock %}

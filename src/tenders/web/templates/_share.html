@@ -1,0 +1,20 @@
+{# Icon-only share + bookmark row. `url` is a site-relative path; `bid` is the
+   bookmark id (tender id, or 'doc-<id>' for a document). #}
+{% from "_icons.html" import icon %}
+{% macro share_row(url, name, bid, closing=none) %}
+{%- set site = "https://tenders.reclaimchennai.city" -%}
+{# `data-closing` is the raw IST stamp, not a rendered phrase: bookmarks live in
+   localStorage for months, so the saved copy has to be something the /bookmarks
+   page can recompute "Closes in 5 days" from on the day it is opened. #}
+<div class="sharerow" data-id="{{ bid }}" data-name="{{ name|e }}" data-url="{{ url|e }}"
+     {% if closing %}data-closing="{{ closing }}"{% endif %}>
+  <button type="button" class="sharebtn bmk" id="bookmark-btn" title="Bookmark" aria-label="Bookmark" aria-pressed="false">{{ icon('bookmark') }}</button>
+  <a class="sharebtn" title="Share on WhatsApp" aria-label="WhatsApp" target="_blank" rel="noopener"
+     href="https://wa.me/?text={{ name|urlencode }}%20{{ (site ~ url)|urlencode }}"><img src="/static/icons/social/whatsapp.svg" width="20" height="20" alt=""></a>
+  <a class="sharebtn" title="Share on Twitter" aria-label="Twitter" target="_blank" rel="noopener"
+     href="https://twitter.com/intent/tweet?text={{ name|urlencode }}&url={{ (site ~ url)|urlencode }}"><img src="/static/icons/social/twitter.svg" width="20" height="20" alt=""></a>
+  <a class="sharebtn" title="Share on Facebook" aria-label="Facebook" target="_blank" rel="noopener"
+     href="https://www.facebook.com/sharer/sharer.php?u={{ (site ~ url)|urlencode }}"><img src="/static/icons/social/facebook.svg" width="20" height="20" alt=""></a>
+  <button type="button" class="sharebtn" id="sh-copy" title="Copy link" aria-label="Copy link" data-copy="{{ site ~ url }}">{{ icon('share') }}</button>
+</div>
+{% endmacro %}

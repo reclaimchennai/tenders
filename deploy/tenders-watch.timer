@@ -1,0 +1,15 @@
+[Unit]
+Description=Check saved searches and bookmark alerts every 5 minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+# Persistent=false on purpose: a missed run must not fire on boot and blurt out
+# everything that accumulated while the machine was off. The next scheduled run
+# handles it, and the freshness floor in watches.py decides what is still worth
+# saying.
+Persistent=false
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
