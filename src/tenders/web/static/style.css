@@ -885,6 +885,22 @@ html.dv-open{overflow:hidden}
 .dv-tab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--text)}
 .dv-sheetpane{display:none;min-width:0}
 .dv-sheetpane.on{display:block}
+/* Zoom control for a sheet. Sits above the scroller, not inside it, so it
+   stays put while the sheet is panned. */
+.dv-zoom{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+.dv-zbtn{display:inline-flex;align-items:center;justify-content:center;
+  min-width:30px;height:30px;padding:0 9px;border:1px solid var(--line);
+  border-radius:8px;background:transparent;color:var(--muted);cursor:pointer;
+  font-size:15px;font-weight:650;line-height:1}
+.dv-zbtn:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
+.dv-zfit{font-size:12px;font-weight:600}
+.dv-zlevel{min-width:46px;text-align:center;font-size:12px;color:var(--muted);
+  font-variant-numeric:tabular-nums}
+/* The transform target. Sized in JS to its own scaled dimensions, because a
+   CSS transform does not change layout size and the scroller would otherwise
+   still reserve room for the sheet at 100%. */
+.dv-zoomer{transform-origin:0 0}
+
 .dv-tablewrap{overflow:auto;max-height:72vh;background:var(--panel);
   border:1px solid var(--line);border-radius:var(--radius-sm);-webkit-overflow-scrolling:touch}
 /* max-content, not the default auto width. A BoQ still has dozens of columns

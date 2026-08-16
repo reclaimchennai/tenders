@@ -58,6 +58,72 @@
     return pdfjsReady;
   }
 
+  /* ---------- spreadsheet zoom ----------
+
+     A BoQ is ~60 columns and about 7,000px wide once the empty ones are
+     dropped, so on a phone it is a thing you pan around one screenful at a
+     time and there is no way to see its shape — which column is the priced
+     one, how many line items there are, where the totals sit. Zoom answers
+     that, and it deliberately goes far below readable: at 20% the text is a
+     grey texture and the *structure* is the whole point.
+
+     Implemented as a CSS transform rather than by shrinking the font, because
+     a font-size change re-runs table layout — column widths redistribute, rows
+     re-wrap, and the sheet you were looking at is not the sheet you get back.
+     A transform scales the finished layout, so zooming is purely optical and
+     the sheet keeps its proportions. The cost is that a transform does not
+     affect layout size, so the scroller would not know the content had shrunk;
+     .dv-zoomer is sized explicitly to the scaled dimensions to fix that. */
+
+  /* 4% is not a typo. A de-sparsified BoQ is still ~7,000px wide and a phone
+     viewport is ~372px, so seeing the whole sheet at once *requires* about 5%
+     — a floor of 20% would have made "fit width" unable to fit, which is the
+     one thing it is for. At this scale the text is deliberately a grey
+     texture; the shape of the sheet is the information. */
+  var ZOOM_MIN = 0.04, ZOOM_MAX = 2, ZOOM_STEP = 0.8;  /* step is multiplicative */
+
+  function applyZoom(pane, z) {
+    var zoomer = pane.querySelector('.dv-zoomer');
+    var table = pane.querySelector('.dv-table');
+    var level = pane.querySelector('.dv-zlevel');
+    if (!zoomer || !table) return;
+    z = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+    pane.dataset.zoom = z;
+    /* Measure unscaled, or each zoom would compound the last one's scale. */
+    zoomer.style.transform = 'none';
+    zoomer.style.width = '';
+    zoomer.style.height = '';
+    var w = table.offsetWidth, h = table.offsetHeight;
+    zoomer.style.transform = 'scale(' + z + ')';
+    zoomer.style.transformOrigin = '0 0';
+    zoomer.style.width = (w * z) + 'px';
+    zoomer.style.height = (h * z) + 'px';
+    if (level) level.textContent = Math.round(z * 100) + '%';
+  }
+
+  function fitWidth(pane) {
+    var wrap = pane.querySelector('.dv-tablewrap');
+    var table = pane.querySelector('.dv-table');
+    if (!wrap || !table) return;
+    var zoomer = pane.querySelector('.dv-zoomer');
+    zoomer.style.transform = 'none'; zoomer.style.width = ''; zoomer.style.height = '';
+    var natural = table.offsetWidth;
+    /* -2px so the last column's border is inside the frame rather than
+       triggering a 1px horizontal scrollbar that makes "fit" look broken. */
+    applyZoom(pane, natural ? (wrap.clientWidth - 2) / natural : 1);
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.dv-zbtn') : null;
+    if (!btn) return;
+    var pane = btn.closest('.dv-sheetpane');
+    if (!pane) return;
+    var how = btn.dataset.zoom;
+    if (how === 'fit') return fitWidth(pane);
+    var cur = parseFloat(pane.dataset.zoom || '1') || 1;
+    applyZoom(pane, how === 'out' ? cur * ZOOM_STEP : cur / ZOOM_STEP);
+  });
+
   /* ---------- spreadsheet tabs ---------- */
 
   /* Delegated from the document so re-injecting the modal body can never stack
