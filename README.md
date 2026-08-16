@@ -15,6 +15,38 @@ requirements of past procurement. This project:
    OCR for scans, XLS/XLSX), so you can search inside the requirements.
 4. Serves a simple **searchable mirror website** with downloads.
 
+## The mirror
+
+Live at **[tenders.reclaimchennai.city](https://tenders.reclaimchennai.city)**.
+
+### Dashboard
+What is open right now, what is closing, and what has just been published.
+
+![Dashboard: live ticker, archive size, open-tender value, and publication/closing charts](docs/screenshots/01-dashboard.png)
+
+### Every tender, with its documents preserved
+The dates the portal buries at the bottom of a sixty-row table, then the files
+themselves — captured while the tender was still open, which is the only time
+they exist.
+
+![A tender page: critical-dates timeline and the captured document list with sizes](docs/screenshots/02-tender.png)
+
+### Documents readable in the browser
+PDFs and spreadsheets open in place, rendered locally — no third-party viewer,
+no upload of a government document to anyone else's service. Bills of quantity
+are the awkward case: the portal's templates scatter a handful of real columns
+across a few hundred empty ones, so the viewer keeps only the columns that hold
+anything.
+
+![The in-page viewer showing a bill of quantities with its line items](docs/screenshots/03-viewer.png)
+
+### Short bidding windows
+The reason the project exists. A tender published and closed inside a few hours
+leaves no time for a genuine competitor to prepare a bid, and the archive keeps
+the record after the portal has moved on.
+
+![History page listing closed tenders whose bidding window was under 24 hours](docs/screenshots/04-short-windows.png)
+
 ## How the portal works (what the scraper relies on)
 
 Hands-on findings that shape the design:
