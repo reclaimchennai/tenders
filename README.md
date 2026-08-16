@@ -86,21 +86,29 @@ the glyphs and they fuse with the letters — so the real solver is a small CNN
 trained locally. Measured against every captcha the portal itself confirmed an
 answer for, it reads **1,640 of 1,640**.
 
-You do not need any labelled data to get there. `captcha_synth.py` reconstructs
-the portal's own generator (DejaVu Sans at 38px, matched by ink-coverage
-fingerprinting), so a fresh checkout trains from synthetic images alone:
+**The cold start bootstraps itself, but it is not instant.** A fresh checkout
+has no model, so `solve_image` falls back to Tesseract. That is slow and mostly
+wrong, but the caller retries with a *fresh* captcha up to 15 times per tender,
+so downloads do succeed — and every solve the portal **accepts** is written back
+as a server-verified training label (`save_verified_label`). The training set
+therefore grows on its own while the mirror runs, with no labelling work at all.
+
+Once 30 verified labels exist, train:
 
 ```bash
 pip install -e ".[ml]"      # PyTorch, CPU-only is fine
-tenders-captcha-corpus      # render a synthetic corpus (offline, no portal traffic)
-tenders-captcha-train       # trains data/captcha/model.pt
+tenders-captcha-corpus      # optional: pre-render synthetic shards to train against
+tenders-captcha-train       # writes data/captcha/model.pt
 ```
 
-Once `data/captcha/model.pt` exists, `solve_image` uses it automatically. Until
-then downloads still work, slowly, via Tesseract; setting `captcha_manual = true`
-in `config.toml` lets you type them yourself instead.
+Training **augments** those real labels with synthetic images from
+`captcha_synth.py`, which reconstructs the portal's own generator (DejaVu Sans
+at 38px, matched by ink-coverage fingerprinting) — that is what lets a few dozen
+real captchas go a long way. It does not replace them: `tenders-captcha-train`
+requires at least 30 real verified labels and exits telling you so if it has
+fewer. Synthetic-only training is not currently supported.
 
-Optionally, to fine-tune on real captchas rather than synthetic ones:
+To go faster than the automatic path, label some by hand:
 
 ```bash
 tenders-captcha-collect --target 500   # gather raw captchas (polite, rate-limited;
@@ -111,8 +119,9 @@ tenders-captcha-label                  # http://127.0.0.1:8001 — each is pre-f
 tenders-captcha-train
 ```
 
-Every correct solve the portal accepts in normal operation is also saved as a
-verified label, so the training set grows on its own as the mirror runs.
+Once `data/captcha/model.pt` exists, `solve_image` uses it automatically. Until
+then, setting `captcha_manual = true` in `config.toml` lets you type captchas
+yourself instead of waiting on Tesseract.
 
 ### Running it continuously
 

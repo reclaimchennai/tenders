@@ -183,13 +183,25 @@ RUN cp /app/deploy/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh \
 
 ENV TENDERS_WEB_PORT=8013 \
     TENDERS_WEB_HOST=127.0.0.1 \
-    SUPERVISOR_CONF=/app/deploy/supervisord.conf \
-    # extract_text.py sets this itself before forking its workers, but the
-    # captcha trainer and pdfplumber also link OpenMP-backed libraries. One
-    # thread per process by default keeps four extraction workers from
-    # spawning four thread pools each on a box that is also meant to be
-    # serving a website.
-    OMP_THREAD_LIMIT=1
+    SUPERVISOR_CONF=/app/deploy/supervisord.conf
+
+# Deliberately NOT set here: OMP_THREAD_LIMIT=1.
+#
+# It looks like an obvious image-wide default — extract_text.py sets exactly
+# that before forking its four OCR workers, so that four workers do not each
+# spawn a thread pool on a box that is also serving a website. Hoisting it into
+# the image was measured and reverted, because it does not only affect
+# extraction: it is an OpenMP-wide ceiling, and PyTorch links OpenMP. Measured
+# in this image, 20 multiplications of a 2000x2000 matrix take 4.51s with
+# OMP_THREAD_LIMIT=1 and 1.69s without it — a 2.7x slowdown applied to the
+# nightly captcha retrain, which asks for four threads by name
+# (captcha_model.train sets torch.set_num_threads(4)) and is the one job whose
+# whole purpose is to keep the mirror able to download documents at all.
+#
+# extract_text.py setting it for itself, in the process that wants it, is the
+# correct scope. Note it uses os.environ.setdefault, so an inherited value
+# would have won — which is exactly how a well-meant image default silently
+# becomes a policy nobody chose.
 
 USER tenders
 

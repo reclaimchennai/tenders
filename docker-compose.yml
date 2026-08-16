@@ -1,0 +1,178 @@
+# TN Tenders Mirror — self-hosting stack.
+#
+#   docker compose up -d --build
+#   curl -s localhost:8013/healthz
+#
+# Read docs/SELF-HOSTING.md before the first `up`, and in particular the
+# politeness section. This scrapes a live government portal that other people
+# depend on; the defaults in config.toml (a 4-second minimum interval plus up
+# to 3 seconds of jitter, single-threaded, one request at a time) are a safety
+# property of the project, not a tuning knob.
+
+services:
+  tenders:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Only matters if you switch the volume below to a bind mount. With the
+        # named volume, Docker seeds the empty volume from the image's /app/data
+        # — ownership included — and the uid never has to match anything on the
+        # host. With a bind mount it must match the uid that owns the directory
+        # on the host, or nothing can be written to it:
+        #
+        #   docker compose build --build-arg TENDERS_UID=$(id -u) \
+        #                        --build-arg TENDERS_GID=$(id -g)
+        TENDERS_UID: "${TENDERS_UID:-1001}"
+        TENDERS_GID: "${TENDERS_GID:-1001}"
+    image: tenders-mirror:latest
+    container_name: tenders
+
+    # The image already runs as the unprivileged tenders user (USER in the
+    # Dockerfile). It is spelled out here as well so that `docker compose exec`
+    # lands as the same uid: an exec that ran as root would write root-owned
+    # files into the archive and hand the next ordinary write a permission
+    # error somewhere far away from the cause.
+    user: "${TENDERS_UID:-1001}:${TENDERS_GID:-1001}"
+
+    restart: unless-stopped
+
+    ports:
+      # host:container. Change only the left-hand side to move the published
+      # port; TENDERS_WEB_PORT below moves the port *inside* the container and
+      # both the frontend and its watchdog read it, so they cannot drift.
+      #
+      # Bound to 127.0.0.1 by default. This app has no authentication because it
+      # serves a public archive, but "no authentication" and "reachable from the
+      # whole internet on an unencrypted port" are different decisions — put a
+      # TLS-terminating reverse proxy in front and let it be the only thing
+      # listening publicly. Drop the 127.0.0.1 prefix only if you know that is
+      # what you want.
+      - "127.0.0.1:${TENDERS_PUBLISH_PORT:-8013}:${TENDERS_WEB_PORT:-8013}"
+
+    volumes:
+      # THE ARCHIVE. Everything mutable is under here: the SQLite database and
+      # its WAL, data/docs (69 GB of captured documents on the reference
+      # deployment), data/html (gzipped detail-page provenance), data/captcha
+      # (the trained model and its labels), data/secrets (the VAPID push key)
+      # and data/backups.
+      #
+      # A named volume rather than `./data:/app/data` on purpose. A bind mount
+      # to a relative path is the version of this line that eats an archive: it
+      # is silently created as an empty root-owned directory if the path is
+      # wrong or the compose file is run from elsewhere, and the container then
+      # starts a *fresh, empty* mirror while the real one sits untouched and
+      # unserved next door. A named volume cannot be typo'd into existence
+      # somewhere else.
+      #
+      # To use a host directory instead — for a 69 GB archive you probably
+      # want to choose the disk — replace the line below with an absolute path:
+      #
+      #   - /srv/tenders/data:/app/data
+      #
+      # and read the 'Permissions' section of docs/SELF-HOSTING.md first.
+      - tenders-data:/app/data
+
+      # config.toml is committed and holds no secrets — paths, tuning, rate
+      # limits — so the image ships it and this mount is commented out. Enable
+      # it to run modified settings without rebuilding. Read-only because
+      # nothing in the project writes to it, and because the file that sets the
+      # portal rate limits should not be writable by the process making the
+      # requests.
+      # - ./config.toml:/app/config.toml:ro
+
+    environment:
+      # --- ports -----------------------------------------------------------
+      # Read by tenders-web (the bind port) and by scripts/healthcheck.py (the
+      # probe port). Note that config.toml's [web].port = 8000 is not used by
+      # either — cli.py lets the command line win — so the watchdog will log one
+      # informational line at each run pointing out the difference. That line is
+      # expected and is explained at length in healthcheck.py's DEFAULT_PORT
+      # comment; it is a report, never an action.
+      TENDERS_WEB_PORT: "${TENDERS_WEB_PORT:-8013}"
+
+      # --- timezone --------------------------------------------------------
+      # The two daily jobs fire at wall-clock times (WAL guard 04:30, captcha
+      # retrain 03:15) chosen to be a quiet hour and to stay off each other's
+      # disk. Set this to your own zone or those times mean nothing in
+      # particular.
+      TZ: "${TZ:-Asia/Kolkata}"
+
+      # --- what runs -------------------------------------------------------
+      # All true by default: a mirror should mirror. Turn the scraper off to
+      # serve an existing archive read-only, or while a captcha model trains,
+      # or when smoke-testing the image — with it off, nothing in this
+      # container makes a single request to the portal.
+      TENDERS_ENABLE_WEB: "${TENDERS_ENABLE_WEB:-true}"
+      TENDERS_ENABLE_SCRAPER: "${TENDERS_ENABLE_SCRAPER:-true}"
+      TENDERS_ENABLE_EXTRACT: "${TENDERS_ENABLE_EXTRACT:-true}"
+      TENDERS_ENABLE_AWARD_SWEEP: "${TENDERS_ENABLE_AWARD_SWEEP:-true}"
+      TENDERS_ENABLE_WATCH: "${TENDERS_ENABLE_WATCH:-true}"
+      # Leave this one alone. It is the watchdog that caught a frontend that
+      # was alive, listening, reporting "active" and serving nothing.
+      TENDERS_ENABLE_HEALTHCHECK: "${TENDERS_ENABLE_HEALTHCHECK:-true}"
+      # And this one. It is what stands between the archive and a 44 GB WAL.
+      TENDERS_ENABLE_DBMAINT: "${TENDERS_ENABLE_DBMAINT:-true}"
+      TENDERS_ENABLE_CAPTCHA_TRAIN: "${TENDERS_ENABLE_CAPTCHA_TRAIN:-true}"
+
+      # --- politeness ------------------------------------------------------
+      # Seconds of pause between capture cycles, and how often the cancelled/
+      # retendered sweep runs (every Nth cycle). These are the live
+      # deployment's values. Raising the pause is always safe. LOWERING IT
+      # SENDS MORE TRAFFIC TO A PUBLIC GOVERNMENT PORTAL, and the per-request
+      # spacing in config.toml [scrape] is the only other thing standing
+      # between this software and an accidental denial of service.
+      TENDERS_CYCLE_PAUSE: "${TENDERS_CYCLE_PAUSE:-900}"
+      TENDERS_CANCELLED_EVERY: "${TENDERS_CANCELLED_EVERY:-6}"
+
+      # --- maintenance -----------------------------------------------------
+      TENDERS_DBMAINT_AT: "${TENDERS_DBMAINT_AT:-04:30}"
+      TENDERS_CAPTCHA_TRAIN_AT: "${TENDERS_CAPTCHA_TRAIN_AT:-03:15}"
+      # WAL size past which db_maint.py truncates, in MB. 1024 was chosen as
+      # roughly half the reference database rather than as an absolute: normal
+      # steady state is a few megabytes, so it fires only when something is
+      # genuinely wrong. Scale it to your own database, not to your disk.
+      TENDERS_WAL_MAX_MB: "${TENDERS_WAL_MAX_MB:-1024}"
+
+    # One container-wide budget, because a process supervisor cannot set the
+    # per-unit memory limits that deploy/*.service carries (see the long note
+    # at the top of deploy/supervisord.conf). 6g is the sum of the frontend's
+    # ceiling and one batch job's, which is what the host actually needs when
+    # exactly one heavy job is mid-slice — the systemd budgets were never
+    # meant to be additive, they were meant to stop a runaway.
+    #
+    # If the kernel does have to kill something under this limit it kills the
+    # largest consumer, and that ordering is right: the 2026-08-15 runaway sat
+    # at 6.7 GB resident while the frontend sat at 275 MB. The killed job is
+    # restarted by supervisor and resumes from database state.
+    mem_limit: ${TENDERS_MEM_LIMIT:-6g}
+
+    # Give supervisord time to stop eight processes gracefully; without this,
+    # Docker's 10-second default SIGKILLs a frontend that is 30 seconds into
+    # streaming a large document to somebody.
+    stop_grace_period: 45s
+
+    # SQLite + a mmap window + Tesseract workers. The 64 MB default /dev/shm is
+    # not the constraint here, but multiprocessing in the extract loop uses it
+    # and a full /dev/shm surfaces as a baffling semaphore error rather than as
+    # an out-of-space one.
+    shm_size: 256m
+
+    logging:
+      # Everything logs to stdout. Without a cap, a long-running mirror's json
+      # log file grows without bound on the host — which is the same class of
+      # bug as the WAL that reached 44 GB, and just as invisible until the disk
+      # is full.
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  tenders-data:
+    # Named so `docker volume ls` shows something recognisable, and so that a
+    # `docker compose down -v` typed in the wrong directory is at least
+    # obviously about this project. Note that `down -v` DELETES THE ARCHIVE —
+    # including documents the portal itself has already deleted, which exist
+    # nowhere else. Use `docker compose down` (no -v) to stop the mirror.
+    name: tenders-data
