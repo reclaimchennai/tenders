@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from contextlib import contextmanager
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -51,12 +52,50 @@ _local = threading.local()
 
 
 def _writer():
-    """One write connection per request thread (FastAPI runs these in a pool)."""
+    """One write connection per request thread (FastAPI runs these in a pool).
+
+    Autocommit (``isolation_level=None``), and that is the whole fix for
+    "database is locked" on subscribing.
+
+    Python's sqlite3 defaults to *deferred* transactions: it silently opens one
+    on the first INSERT, having possibly already read on the same connection.
+    A deferred transaction that has read and then wants to write must upgrade
+    its lock, and if any other process has written in between, SQLite cannot
+    grant the upgrade without breaking this connection's snapshot — so it
+    returns SQLITE_BUSY **immediately**. ``busy_timeout`` does not apply,
+    because waiting cannot resolve it. That is exactly what a subscriber saw:
+    an instant HTTP 500 despite a 30-second timeout, on a database being
+    written continuously by the scraper, the extractor and the award sweep.
+
+    In autocommit each statement takes the write lock up front, which is a
+    conflict ``busy_timeout`` *can* wait out. Multi-statement writes that need
+    to be atomic take an explicit ``BEGIN IMMEDIATE`` instead (see
+    ``_immediate``) — same reasoning, one lock, acquired first.
+    """
     conn = getattr(_local, "conn", None)
     if conn is None:
         conn = connect(cfg.db_path)
+        conn.isolation_level = None
         _local.conn = conn
+    # A previous request on this thread may have died mid-transaction; a stale
+    # open transaction here would reintroduce the upgrade deadlock for every
+    # later request on the same worker thread.
+    if conn.in_transaction:
+        conn.rollback()
     return conn
+
+
+@contextmanager
+def _immediate(conn):
+    """Run a multi-statement write under one up-front write lock."""
+    conn.execute("BEGIN IMMEDIATE")
+    try:
+        yield conn
+    except BaseException:
+        conn.rollback()
+        raise
+    else:
+        conn.commit()
 
 
 # Bounds on anything a browser can put in the database. These are not security
@@ -127,12 +166,14 @@ async def register(request: Request):
         # watches hanging off it are silently orphaned rather than moved.
         old = subscription_id(conn, replaces)
         if old is not None:
-            conn.execute("UPDATE OR IGNORE watches SET subscription_id=?"
-                         " WHERE subscription_id=?", (sub_id, old))
-            conn.execute("UPDATE OR IGNORE tender_alerts SET subscription_id=?"
-                         " WHERE subscription_id=?", (sub_id, old))
-            conn.execute("DELETE FROM push_subscriptions WHERE id=?", (old,))
-            conn.commit()
+            # One transaction: moving the watches and deleting the old row must
+            # not be separable, or a failure between them orphans them.
+            with _immediate(conn):
+                conn.execute("UPDATE OR IGNORE watches SET subscription_id=?"
+                             " WHERE subscription_id=?", (sub_id, old))
+                conn.execute("UPDATE OR IGNORE tender_alerts SET subscription_id=?"
+                             " WHERE subscription_id=?", (sub_id, old))
+                conn.execute("DELETE FROM push_subscriptions WHERE id=?", (old,))
     return {"ok": True, "watches": _watch_rows(conn, sub_id),
             "alerts": _alert_rows(conn, sub_id)}
 

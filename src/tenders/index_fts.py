@@ -47,6 +47,7 @@ so ``text`` must stay the fourth column.
 from __future__ import annotations
 
 import logging
+import sqlite3
 
 from .config import load_config
 from .db import connect, init_db
@@ -87,7 +88,7 @@ CREATE VIRTUAL TABLE docs_fts USING fts5(
     text,
     content='{_SOURCE_VIEW}',
     content_rowid='document_id',
-    tokenize = 'unicode61 remove_diacritics 2'
+    tokenize = 'porter unicode61 remove_diacritics 2'
 )
 """
 
@@ -263,7 +264,11 @@ def _ensure_external_content(conn) -> None:
     ddl = conn.execute(
         "SELECT sql FROM sqlite_master WHERE type='table' AND name='docs_fts'"
     ).fetchone()
-    if ddl and f"content='{_SOURCE_VIEW}'" in (ddl[0] or ""):
+    sql = (ddl[0] if ddl else "") or ""
+    # `porter` is checked here too: a tokenizer cannot be altered in place, so a
+    # stemmer change is the same operation as the content change — drop and
+    # rebuild — and keying both off the stored DDL keeps it self-healing.
+    if f"content='{_SOURCE_VIEW}'" in sql and "porter" in sql:
         return
     log.info("converting docs_fts to external content (drops the duplicate text copy)")
     begin_immediate(conn)
@@ -274,6 +279,42 @@ def _ensure_external_content(conn) -> None:
     conn.execute("INSERT INTO docs_fts(docs_fts) VALUES('rebuild')")
     _set_flag(conn, _ALIGNED_KEY)
     _set_flag(conn, _EXTERNAL_KEY)
+    commit(conn)
+
+
+_TENDERS_FTS_SQL = """
+CREATE VIRTUAL TABLE tenders_fts USING fts5(
+    tender_id UNINDEXED,
+    title,
+    work_description,
+    organisation_chain,
+    location,
+    reference_number,
+    tokenize = 'porter unicode61 remove_diacritics 2'
+)
+"""
+
+
+def _ensure_tenders_tokenizer(conn) -> None:
+    """Rebuild tenders_fts if it predates the Porter stemmer.
+
+    FTS5 tokenizers are fixed at creation, so adding stemming means dropping the
+    index and building it again — there is no ALTER. Detected from the stored
+    DDL rather than a flag so that any database, however old, repairs itself on
+    the next indexing pass. The watermark is cleared so the sync that follows
+    treats every tender as unseen.
+    """
+    ddl = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='tenders_fts'"
+    ).fetchone()
+    if ddl and "porter" in ((ddl[0] or "")):
+        return
+    log.info("rebuilding tenders_fts with the porter stemmer "
+             "(searches for 'bollard' and 'bollards' will converge)")
+    begin_immediate(conn)
+    conn.execute("DROP TABLE IF EXISTS tenders_fts")
+    conn.execute(_TENDERS_FTS_SQL)
+    conn.execute("DELETE FROM fts_state WHERE key = ?", (_TENDERS_WATERMARK_KEY,))
     commit(conn)
 
 
@@ -390,6 +431,7 @@ def rebuild_fts(db_path=None, *, full: bool = False) -> dict:
     conn = open_writer(db_path)
     try:
         _ensure_state_table(conn)
+        _ensure_tenders_tokenizer(conn)
         _ensure_external_content(conn)
 
         begin_immediate(conn)

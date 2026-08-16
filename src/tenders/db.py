@@ -265,6 +265,14 @@ CREATE INDEX IF NOT EXISTS idx_alerts_sub ON tender_alerts(subscription_id);
 CREATE INDEX IF NOT EXISTS idx_alerts_tender ON tender_alerts(tender_id);
 
 -- FTS5 over tender metadata (external content -> tenders).
+-- `porter` wraps unicode61 with the Porter stemmer, so a search for "bollard"
+-- also finds "bollards" and "drilling" finds "drilled". Without it FTS5 matches
+-- whole tokens only, and the archive answered those as two unrelated searches —
+-- 22 tenders for one, 17 for the other, with no hint that either was partial.
+-- Stemming is applied to the query and the index alike, so both spellings
+-- reduce to the same term and the two searches converge.
+-- It is English-only by construction; Tamil place names and reference codes
+-- pass through unchanged, which is what we want.
 CREATE VIRTUAL TABLE IF NOT EXISTS tenders_fts USING fts5(
     tender_id UNINDEXED,
     title,
@@ -272,7 +280,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS tenders_fts USING fts5(
     organisation_chain,
     location,
     reference_number,
-    tokenize = 'unicode61 remove_diacritics 2'
+    tokenize = 'porter unicode61 remove_diacritics 2'
 );
 
 -- FTS5 over extracted document text.
@@ -281,7 +289,7 @@ CREATE VIRTUAL TABLE IF NOT EXISTS docs_fts USING fts5(
     tender_id UNINDEXED,
     filename,
     text,
-    tokenize = 'unicode61 remove_diacritics 2'
+    tokenize = 'porter unicode61 remove_diacritics 2'
 );
 """
 
