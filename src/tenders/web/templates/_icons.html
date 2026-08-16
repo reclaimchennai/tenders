@@ -67,6 +67,14 @@
     second, smaller button nested in the first. This one has no outline of its
     own, the same as `close` beside it, so the toolbar shows one button per
     control rather than two. -#}
+{#- A tick on the same 8x8 grid as clock/calendar/flag. The Noun Project `tick`
+    below is drawn on a 26x32.5 artboard with the glyph sitting in the middle of
+    it, so at a fixed 11px box it rendered visibly smaller than the pixel icons
+    beside it in the critical-dates timeline — the row markers are a set, and
+    one of them looked half-sized. Cropping the other icon's viewBox would fix
+    the size but not the weight; drawn here it matches stroke for stroke. -#}
+{%- elif name == 'tick_px' -%}
+<svg class="ic ic-px" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><path d="M7 1h1v1H7zM6 2h1v1H6zM1 3h1v1H1zM5 3h1v1H5zM2 4h1v1H2zM4 4h1v1H4zM3 5h1v1H3zM3 6h1v1H3z"/></svg>
 {%- elif name == 'tray' -%}
 <svg class="ic ic-px" viewBox="0 0 8 8" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true"><path d="M3 0h2v1H3zM3 1h2v1H3zM3 2h2v1H3zM1 3h6v1H1zM2 4h4v1H2zM3 5h2v1H3zM0 7h8v1H0z"/></svg>
 {#- File-type marks for the documents list. One shared page silhouette — folded

@@ -44,6 +44,9 @@
   /* Award green, never the gold used for the estimate — the two figures must
      not be confusable at a glance. */
   --award:#34d399; --award-soft:rgba(52,211,153,.11);
+  /* Ink on a filled award pill. Near-black rather than white: at this green's
+     luminance white text sits around 1.9:1 and is unreadable, dark text ~9:1. */
+  --award-deep:#1fae7c; --award-ink:#04231a; --award-ring:rgba(52,211,153,.35);
   --award-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%2334d399' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
 }
 html[data-theme="light"]{
@@ -84,6 +87,8 @@ html[data-theme="light"]{
   --pixel-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23d64545' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
   --seal-bg:rgba(214,69,69,.07);
   --award:#0a8f5b; --award-soft:rgba(10,143,91,.09);
+  /* The light theme's green is dark enough to carry white text (~5.1:1). */
+  --award-deep:#07734a; --award-ink:#ffffff; --award-ring:rgba(10,143,91,.28);
   --award-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%230a8f5b' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
 }
 /* Self-hosted (no CDN — this archive is built to outlive third-party hosts). */
@@ -596,8 +601,31 @@ a.orgchip.lead-chip:hover{border-color:var(--accent);color:var(--lead-chip-text)
 .badge.st-closed{color:var(--st-closed-fg);border-color:var(--st-closed-fg);background:var(--st-closed-bg);font-weight:650}
 .badge.st-unknown{color:var(--st-none-fg);background:var(--st-none-bg)}
 .badge.st-cancelled{color:var(--lost);border-color:rgba(248,113,113,.45);background:rgba(248,113,113,.12);font-weight:650}
-.badge.st-awarded,.badge.b-award{color:var(--award);border-color:var(--award);
-  background:var(--award-soft);font-weight:650}
+
+/* The two badges that state an outcome — AWARDED, and the price it went for —
+   get real weight. Every pill in this row used the same recipe (thin outline,
+   11% tint, one accent colour), so the row read as five interchangeable chips
+   and the two that actually carry a finding were no louder than the one
+   repeating the word "detailed". These are the end of the story: a contract
+   was let, and this is what it cost. They should look like it.
+   Solid fill rather than a heavier tint, because a tint on a dark ground and a
+   tint on a light ground are two different amounts of contrast, whereas a
+   filled pill with a fixed-luminance text colour behaves the same in both. */
+.badge.st-awarded,.badge.b-award{
+  color:var(--award-ink);
+  background:linear-gradient(180deg,var(--award) 0%,var(--award-deep) 100%);
+  border-color:transparent;
+  font-weight:700;letter-spacing:.01em;
+  /* The ring reads as a subtle lift in dark mode and as a hairline edge in
+     light mode, where a filled green pill on white otherwise floats. */
+  box-shadow:0 0 0 1px var(--award-ring), 0 1px 2px rgba(0,0,0,.28)}
+/* The won-value pill sits next to the AWARDED pill and repeats its colour, so
+   it is given the outline treatment instead — same family, one step quieter,
+   and the two stop competing for the same emphasis. */
+.badge.b-award{
+  background:none;color:var(--award);
+  border:1px solid var(--award);
+  box-shadow:inset 0 0 0 1px var(--award-soft)}
 .card-state{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:650;
   padding:2px 9px;border-radius:999px;margin-right:2px}
 .card-state.st-live{color:var(--st-live-fg);background:var(--st-live-bg)}
@@ -806,13 +834,23 @@ html.dv-open{overflow:hidden}
 .dv-name{flex:1 1 auto;min-width:0;margin:0;font-size:15px;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dv-tools{flex:none;display:flex;align-items:center;gap:8px}
+/* The glyph is the button. These carried a 1px rounded box each, and the
+   download glyph is itself a shape with an outline — an arrow dropping into a
+   tray — so it read as a small button drawn inside a bigger one, while the
+   close X beside it (no outline of its own) read as a single control. Two
+   buttons of the same size looking like different things is worse than either
+   style on its own. The 36px box stays as the *hit area*, which is what makes
+   them thumb-sized on a phone; only the frame goes. */
 .dv-btn,.dv-nav{display:inline-flex;align-items:center;justify-content:center;width:36px;
-  height:36px;padding:0;border:1px solid var(--line);border-radius:9px;background:transparent;
+  height:36px;padding:0;border:0;border-radius:9px;background:transparent;
   color:var(--muted);cursor:pointer;line-height:1;
-  transition:color .15s,border-color .15s,background .15s}
-.dv-btn:hover,.dv-nav:hover{color:var(--text);border-color:var(--accent);background:var(--accent-soft)}
-.dv-btn .ic{width:18px;height:18px}
+  transition:color .15s,background .15s}
+.dv-btn:hover,.dv-nav:hover{color:var(--text);background:var(--accent-soft)}
+/* One size for every control in this bar. The nav arrows, the download and the
+   close are a set and must read as one. */
+.dv-btn .ic,.dv-nav .ic{width:19px;height:19px}
 .dv-dl{color:var(--accent)}
+.dv-dl:hover{color:var(--accent-hover)}
 .dv-nav{font-size:19px;font-weight:700}
 .dv-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:14px;
   background:var(--elevated)}

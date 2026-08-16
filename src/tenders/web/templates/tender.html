@@ -101,7 +101,7 @@
     <ol class="cd-line">
       {% for d in crit_dates %}
       {%- set l = d.label|lower -%}
-      {%- if 'publish' in l %}{% set mark = 'tick' %}
+      {%- if 'publish' in l %}{% set mark = 'tick_px' %}
       {%- elif 'open' in l %}{% set mark = 'calendar' %}
       {%- elif 'result' in l or 'award' in l %}{% set mark = 'flag' %}
       {%- else %}{% set mark = 'clock' %}{% endif -%}
