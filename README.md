@@ -18,34 +18,45 @@ requirements of past procurement. This project:
 ## The mirror
 
 Live at **[tenders.reclaimchennai.city](https://tenders.reclaimchennai.city)**.
+Built phone-first, because that is where it gets read — and installable as an
+app, so a reporter can carry the archive into a meeting.
 
-### Dashboard
-What is open right now, what is closing, and what has just been published.
+<table>
+<tr>
+<td width="50%" valign="top">
 
-![Dashboard: live ticker, archive size, open-tender value, and publication/closing charts](docs/screenshots/01-dashboard.png)
+**Dashboard** — what is open, what is closing, what has just been published.
 
-### Every tender, with its documents preserved
-The dates the portal buries at the bottom of a sixty-row table, then the files
-themselves — captured while the tender was still open, which is the only time
-they exist.
+<img src="docs/screenshots/01-home.png" alt="Dashboard on a phone: live ticker of recently published tenders, 95,805 tenders archived, 4,753 live tenders worth Rs 2152 Cr, a short-bidding-window alert card, and a publication chart" width="100%">
 
-![A tender page: critical-dates timeline and the captured document list with sizes](docs/screenshots/02-tender.png)
+</td>
+<td width="50%" valign="top">
 
-### Documents readable in the browser
-PDFs and spreadsheets open in place, rendered locally — no third-party viewer,
-no upload of a government document to anyone else's service. Bills of quantity
-are the awkward case: the portal's templates scatter a handful of real columns
-across a few hundred empty ones, so the viewer keeps only the columns that hold
-anything.
+**Short bidding windows** — the reason the project exists.
 
-![The in-page viewer showing a bill of quantities with its line items](docs/screenshots/03-viewer.png)
+<img src="docs/screenshots/02-short-windows.png" alt="History page listing closed tenders whose bidding window was under 24 hours, each showing the window length in hours" width="100%">
 
-### Short bidding windows
-The reason the project exists. A tender published and closed inside a few hours
-leaves no time for a genuine competitor to prepare a bid, and the archive keeps
-the record after the portal has moved on.
+</td>
+</tr>
+<tr>
+<td width="50%" valign="top">
 
-![History page listing closed tenders whose bidding window was under 24 hours](docs/screenshots/04-short-windows.png)
+**A tender, with its documents preserved** — the dates the portal buries at the
+bottom of a sixty-row table, then the files themselves.
+
+<img src="docs/screenshots/03-tender.png" alt="Tender page showing a critical-dates timeline for publication, bid submission and bid opening, followed by the captured document list with file sizes" width="100%">
+
+</td>
+<td width="50%" valign="top">
+
+**Documents readable in place** — rendered locally, never handed to a
+third-party viewer.
+
+<img src="docs/screenshots/04-viewer.png" alt="The in-page spreadsheet viewer showing a bill of quantities with its work description and line items" width="100%">
+
+</td>
+</tr>
+</table>
 
 ## How the portal works (what the scraper relies on)
 
