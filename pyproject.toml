@@ -2,7 +2,23 @@
 name = "tenders"
 version = "0.1.0"
 description = "Mirror & archive of Tamil Nadu government e-procurement tenders and their documents"
+readme = "README.md"
 requires-python = ">=3.11"
+# AGPL, not GPL, because this is served over a network. Under the GPL a
+# department — or anyone else — could take this archive, modify how it decides
+# what counts as a red flag or which documents it shows, run the result as a
+# public website, and never publish that change. Section 13 of the AGPL closes
+# exactly that gap. An archive whose value rests on being checkable has to be
+# checkable in the version people are actually reading.
+license = "AGPL-3.0-or-later"
+license-files = ["LICENSE"]
+# No "License ::" classifier here: PEP 639 replaced those with the expression
+# above, and setuptools now refuses the build outright if both are present.
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Sociology :: History",
+    "Intended Audience :: Other Audience",
+]
 dependencies = [
     "requests>=2.31",
     "beautifulsoup4>=4.12",

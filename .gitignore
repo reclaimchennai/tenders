@@ -1,55 +1,139 @@
-.venv/
-__pycache__/
-*.pyc
-*.egg-info/
+# ===========================================================================
+# This repository is public, and the thing it is trying not to leak is always
+# the file nobody thought of.
+#
+# Four separate leaks were caught by hand while preparing the first commit: a
+# production server's IP address and a *second person's* username in an
+# internal runbook; a personal Downloads path inside local tool config; a
+# hardcoded home directory in an obsolete launchd plist; and 2.5 GB of database
+# snapshots containing real push-subscriber endpoints. Every one of them was
+# found by a human squinting at a file list — none by a rule written in
+# advance, because each rule was written *after* the near-miss it describes.
+#
+# So the rules below are deliberately about **categories** rather than about
+# the specific files that have burned us. A key, a database, a dump or a log is
+# ignored wherever it appears in the tree, not only where one happens to live
+# today. Adding a directory should never silently add a secret to it.
+# ===========================================================================
 
-# ---------------------------------------------------------------------------
-# Everything under data/ is runtime state, and this repository is public.
+# --- Secrets ---------------------------------------------------------------
+# Anywhere in the tree, not just data/secrets/. A key committed once is
+# compromised permanently: deleting the commit does not un-publish it, and for
+# the VAPID key specifically, rotating it invalidates every existing push
+# subscription. Nothing here is worth a "just this once".
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+id_rsa*
+id_ed25519*
+.env
+.env.*
+!.env.example
+secrets/
+**/secrets/
+*credentials*.json
+*.secret
+
+# --- The archive itself ----------------------------------------------------
+# Everything under data/ is runtime state. Deny-by-default, not a list of
+# known-bad paths: the earlier list version enumerated tenders.db, docs/,
+# html/ and captcha/ and silently missed data/backups/ — full database copies,
+# push_subscriptions table included, staged and ready to push. Enumerating what
+# to hide fails the moment a new subdirectory appears; enumerating what to keep
+# fails safe instead.
 #
-# Deny-by-default, not a list of known-bad paths. The list version of this file
-# enumerated tenders.db, docs/, html/, captcha/ and secrets/ — and silently did
-# not cover data/backups/, which holds *complete copies of the database*,
-# including the push_subscriptions table (real subscriber endpoints, i.e. other
-# people's personal data). 2.5 GB of it was staged and ready to be pushed to a
-# public repo. Enumerating what to hide fails the moment a new directory
-# appears; enumerating what to *keep* fails safe instead.
-#
-# Nothing in data/ belongs in git: config.ensure_dirs() recreates the tree, and
-# the archive itself is rebuilt by scraping. If something here ever does need
-# tracking, add a targeted `!data/thing` exception below and say why.
-# ---------------------------------------------------------------------------
+# Nothing in data/ belongs in git: config.ensure_dirs() recreates the tree and
+# the archive is rebuilt by scraping. If something in here ever does need
+# tracking, add a targeted `!data/thing` exception and say why.
 data/
 
-# The push identity. Called out separately from the blanket rule above because
-# it is the one file whose exposure cannot be undone by deleting a commit: it
-# is the credential that lets a server push notifications to every subscriber's
-# device, and rotating it invalidates every existing subscription.
-data/secrets/
+# Databases and their sidecars, wherever they turn up. A WAL and a shm are as
+# disclosing as the .db they belong to, and a mid-write copy of any of the
+# three is also corrupt — see docs/SELF-HOSTING.md on backups.
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.dump
+*.sql.gz
+*.sql.zst
 
-# ---------------------------------------------------------------------------
-# Internal deployment runbook — not published.
-#
-# ARCHITECTURE.md documents *this specific installation*: the production
-# server's IP address, home-directory paths, the hostname, the uid the units
-# run under, and the username of a second person who works on the wider
-# cluster. None of that helps anyone self-host their own mirror, and one of the
-# names in it is not even ours to publish. The public equivalent is README.md
-# plus docs/SELF-HOSTING.md, which describe the system without describing the
-# machine it happens to run on.
-#
-# If a design-rationale document is ever wanted in the repo, write it fresh
-# rather than scrubbing this one — a redaction pass over a runbook is exactly
-# the kind of thing that misses a line.
-# ---------------------------------------------------------------------------
+# Captured documents, archived HTML, generated share cards.
+*.tar.zst
+*.tar.gz
+og/
+
+# --- Logs ------------------------------------------------------------------
+# Logs quote URLs, tender ids, filesystem paths and occasionally a stack trace
+# with local variables in it. None of that is interesting enough to publish and
+# some of it is machine-identifying.
+*.log
+logs/
+
+# --- Machine-specific and operator-specific --------------------------------
+# ARCHITECTURE.md documents *this installation*: the production server's IP
+# address, home-directory paths, the hostname, the uid the units run under, and
+# the username of a second person on the wider cluster. None of it helps anyone
+# self-host, and one of the names in it is not ours to publish. The public
+# equivalents are README.md and docs/SELF-HOSTING.md, which describe the system
+# without describing the machine. If a design-rationale doc is ever wanted in
+# the repo, write it fresh — a redaction pass over a runbook is exactly the
+# kind of thing that misses a line.
 ARCHITECTURE.md
 
-# Local tooling config, not project code. settings.local.json in particular
-# accumulates absolute paths from whatever machine it was used on — this one
-# had a personal Downloads path in it — and the ".local." in the name says it
-# was never meant to be shared.
+# Local tool config. Anything named *.local.* was never meant to be shared, and
+# these files accumulate absolute paths from whatever machine touched them.
 .claude/
+*.local.json
+*.local.toml
+*.local.yml
 
-# Obsolete macOS launchd agent with a hardcoded personal path baked into it
-# (/Users/<someone>/Desktop/...). Superseded by deploy/*.service, which use
-# systemd's %h so they work for whoever installs them.
+# Obsolete macOS launchd agent with a hardcoded home directory baked in.
+# Superseded by deploy/*.service, which use systemd's %h and therefore work for
+# whoever installs them.
 scripts/com.tenders.forward.plist
+
+# --- Editors and operating systems -----------------------------------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+._*
+Thumbs.db
+
+# --- Python ----------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# --- Models and training artefacts -----------------------------------------
+# The trained captcha model is reproducible (see the README's cold start) and
+# a checkpoint is tens of megabytes of binary that git cannot diff. It lives in
+# data/ and is caught above; these catch a stray copy elsewhere.
+*.pt
+*.pth
+*.onnx
+*.ckpt
+
+# --- Scratch ---------------------------------------------------------------
+*.bak
+*.orig
+*.rej
+tmp/
+scratch/

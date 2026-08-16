@@ -198,3 +198,27 @@ This archives **public procurement records** for public-interest scrutiny. The
 scraper is deliberately polite: single-threaded, multi-second jittered delays
 (`config.toml [scrape]`), a per-run request cap kill-switch, and no access to any
 authenticated/non-public area. Run large backfills over days, not hours.
+
+## Licence
+
+[AGPL-3.0-or-later](LICENSE).
+
+The network clause is the point. Under an ordinary GPL, someone could take this
+archive, change how it decides what counts as a red flag or which documents it
+surfaces, run the result as a public website, and never publish that change. The
+AGPL's section 13 closes that: if you offer a modified version over a network,
+the people using it can ask you for the source. An archive whose whole value is
+that it can be checked has to be checkable in the version people are actually
+reading.
+
+Run it, fork it, mirror it. If you improve it, the improvement stays available
+to the next person who needs it.
+
+**Bundled third-party assets are not covered by that licence** — in particular
+the Noun Project icons, which are licensed to this project and do not travel
+with a fork. See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) before
+redistributing; swapping them out is straightforward and expected.
+
+The tender records themselves are public documents published by Tamil Nadu
+government departments. This project claims no copyright over them, and none of
+them are stored in this repository.
