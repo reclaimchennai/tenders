@@ -23,7 +23,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..config import load_config
 from ..db import ThreadLocalReader, init_db
-from ..redflags import short_window
+from ..redflags import limited_tender, short_window
 from ..shortnames import headline, main_place, pretty_name
 from ..stats import gather_stats
 from .dashboard import (
@@ -172,7 +172,7 @@ def api_dashboard():
 
 @app.get("/history", response_class=HTMLResponse)
 def history(request: Request):
-    """Archive of past short-bidding-window (suspicious) tenders."""
+    """Archive of closed tenders carrying any suspicion signal."""
     return templates.TemplateResponse(
         request, "history.html",
         {"rows": cached("history", DASHBOARD_TTL,
@@ -325,9 +325,14 @@ def tender_detail(request: Request, tender_id: str):
         d["versions"] = versions.get(d["id"], [])
     flag_hours = short_window(tender.get("published_date"), tender.get("closing_date"),
                               tender.get("raw"))
+    # Computed live for the same reason flag_hours is: a tender re-typed on the
+    # portal should stop or start carrying the mark on its next page load, not
+    # wait for a backfill.
+    limited_kind = limited_tender(tender.get("tender_type"))
     return templates.TemplateResponse(
         request, "tender.html",
         {"t": tender, "docs": docs, "flag_hours": flag_hours,
+         "limited_kind": limited_kind,
          "corrigenda": _corrigenda(tender), "award": award_panel(tender, docs),
          # Computed here and not in the template: it reads raw_json, which this
          # handler has already parsed, and no list page may ever import it.

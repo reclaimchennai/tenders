@@ -16,7 +16,7 @@ from .db import connect, init_db
 from .doc_lifecycle import note_link_appeared, note_missing, record_event
 from .http_client import HttpClient
 from .parse_detail import FIELD_MAP, cancellation, parse_detail
-from .redflags import check_and_flag
+from .redflags import check_and_flag, check_limited_and_flag
 from .util import now_iso, parse_date, parse_money
 
 log = logging.getLogger("pipeline")
@@ -104,7 +104,7 @@ def _apply_fields(conn, tender_id: str, parsed: dict, html_path: str) -> None:
     # rather than using `cols`: published_date/closing_date are COALESCEd above
     # and the merged values are what the flag must be judged on.
     row = conn.execute(
-        "SELECT published_date, closing_date, raw_json FROM tenders"
+        "SELECT published_date, closing_date, raw_json, tender_type FROM tenders"
         " WHERE tender_id = ?", (tender_id,)).fetchone()
     if row is not None:
         try:
@@ -113,6 +113,10 @@ def _apply_fields(conn, tender_id: str, parsed: dict, html_path: str) -> None:
             raw = {}
         check_and_flag(conn, tender_id, row["published_date"], row["closing_date"],
                        raw=raw if isinstance(raw, dict) else {})
+        # The detail page is also where tender_type first becomes known — a
+        # listing row does not carry it — so restricted bidding is judged here
+        # too rather than waiting for the next full backfill.
+        check_limited_and_flag(conn, tender_id, row["tender_type"])
 
 
 def _rejection_reason(fields: dict, tender_id: str) -> str | None:

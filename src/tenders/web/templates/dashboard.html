@@ -64,9 +64,9 @@
     <div class="dsub">{{ dash.value_active }} on offer right now</div>
   </div>
   <div class="dcard dcard-warn">
-    <div class="dlabel">{{ icon('alert') }} Short bidding windows</div>
+    <div class="dlabel">{{ icon('alert') }} Suspicious tenders</div>
     <div class="dbig">{{ dash.suspicious_count }}</div>
-    <div class="dsub">tenders open under 24 h — a rigging red flag</div>
+    <div class="dsub">bidding under 24 h, or restricted to invited bidders</div>
     <div class="dcard-links">
       {% if dash.suspicious %}<a class="dlink" href="#watch">Review watchlist</a>{% endif %}
       <a class="dlink dlink-hist" href="/history">{{ icon('flag') }} History</a>
@@ -102,8 +102,9 @@
 
 {% if dash.suspicious %}
 <section id="watch">
-  <div class="sechead"><h2>{{ icon('alert') }} Short-bidding-window watch</h2>
-    <span class="count">publish-to-close under 24 hours · <a href="/history">{{ icon('flag') }} History</a></span></div>
+  <div class="sechead"><h2>{{ icon('alert') }} Suspicious tender watch</h2>
+    <span class="count">short bidding windows and restricted bidding ·
+      <a href="/history">{{ icon('flag') }} History</a></span></div>
   <ul class="results">
     {% for s in dash.suspicious %}
     {% set st = tender_state(s.closing_date, s.published_date, s.cancelled_at, s.awarded_at) %}
@@ -111,7 +112,8 @@
       <span class="card-state {{ st.css }}">{{ st.label }}</span>
       {% if s.tender_type %}<span class="orgchip">{{ s.tender_type }}</span>{% endif %}
       <a class="card-title" href="/tender/{{ s.tender_id }}">{{ s.short_name or headline(s) }}</a>
-      <span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>
+      {% if 'short_window' in s.flags %}<span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>{% endif %}
+      {% if 'limited' in s.flags %}<span class="limited-badge">Invited bidders only</span>{% endif %}
       {{ org_chips(s.organisation_chain) }}
       <div class="card-meta">
         {% if s.tender_value_num %}<span class="val">{{ s.tender_value_num|inr }}</span>{% endif %}

@@ -39,6 +39,7 @@
   --st-none-fg:#8b93a3; --st-none-bg:rgba(255,255,255,.05);
   /* 8-bit notched frame, sliced 2px per side. border-image cannot take
      currentColor, so each theme carries its own red. */
+  --warn-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23fbbf24' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
   --pixel-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23f87171' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
   --seal-bg:rgba(248,113,113,.09);
   /* Award green, never the gold used for the estimate — the two figures must
@@ -84,6 +85,7 @@ html[data-theme="light"]{
   --st-soon-fg:#8a5d00; --st-soon-bg:rgba(170,115,10,.15);
   --st-closed-fg:#b3261e; --st-closed-bg:rgba(179,38,30,.10);
   --st-none-fg:#6b7382; --st-none-bg:#eaeef4;
+  --warn-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23a9760a' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
   --pixel-frame:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' shape-rendering='crispEdges'%3E%3Cpath fill='%23d64545' d='M2 0h2v1H2zM1 1h4v1H1zM0 2h2v2H0zM4 2h2v2H4zM1 4h4v1H1zM2 5h2v1H2z'/%3E%3C/svg%3E");
   --seal-bg:rgba(214,69,69,.07);
   --award:#0a8f5b; --award-soft:rgba(10,143,91,.09);
@@ -534,6 +536,14 @@ html.ms-open, html.ms-open body{overflow:hidden}
 .window-badge{display:inline-block;margin-left:10px;font-size:12px;font-weight:600;
   padding:2px 9px;border-radius:999px;color:var(--lost);background:rgba(248,113,113,.1);
   border:1px solid rgba(248,113,113,.4)}
+/* Restricted bidding, one step quieter than the window badge. Amber, not red:
+   a limited tender is a process fact worth weighing, not a finding, and giving
+   it the same alarm colour as an unbiddable window would flatten the
+   difference the wording works hard to keep. */
+.limited-badge{display:inline-block;margin-left:10px;font-size:12px;font-weight:600;
+  padding:1px 9px;border-radius:999px;color:var(--warn);
+  border:1px solid rgba(251,191,36,.42);background:rgba(251,191,36,.10);
+  white-space:nowrap}
 
 /* Section headings */
 section{margin:30px 0}
@@ -728,6 +738,14 @@ a.dl-icon:hover{color:var(--accent-hover)}
 .redflag{margin:16px 0 4px;padding:14px 16px;background:rgba(248,113,113,.07);
   border:4px solid var(--lost);border-radius:0;
   border-image:var(--pixel-frame) 2 stretch}
+/* The restricted-bidding notice. Amber and lighter-weight than .redflag, which
+   is red and states a finding — see the block's own comment in tender.html. */
+.redflag-soft{background:rgba(251,191,36,.07);border-color:var(--warn);
+  /* border-image, not border-color: .redflag paints a pixel-art frame over the
+     border box, so overriding the colour alone left this block wearing the red
+     frame and the distinction the wording works for was invisible. */
+  border-image:var(--warn-frame) 2 stretch}
+.redflag-soft .redflag-title{color:var(--warn)}
 .redflag p{margin:0;font-size:14px;line-height:1.6;color:var(--text)}
 .redflag-title{font-family:"Press Start 2P",ui-monospace,monospace;font-size:12px;
   line-height:1.7;color:var(--lost);margin-bottom:10px!important}

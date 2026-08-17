@@ -1,11 +1,29 @@
 """Procurement red-flag detection and persistence.
 
-The first implemented signal is an **abnormally short bidding window**: too
-little time between a tender's publication and its bid-submission close. A short
-window is a classic indicator of a pre-arranged ("tailored") bid — genuine
-bidders can't realistically prepare in a few hours. Flags are stored in the
-``redflags`` table with the time we first detected them, so each tender's page
-can show a persistent warning with the incident details.
+Two signals so far, and they are deliberately worded differently, because they
+are not equally damning.
+
+**Abnormally short bidding window** (``short_bid_window``) — too little time
+between a tender becoming available and its bid-submission close. A few hours
+is not a schedule a genuine competitor can answer, so it is a classic indicator
+of a pre-arranged ("tailored") bid. This one is an accusation, and the archive
+makes it.
+
+**Restricted to invited bidders** (``limited_tender``) — the department used a
+Limited tender rather than an open one, so only firms it invited could bid.
+This is **not** an accusation, and the wording must never imply that it is:
+limited tendering is lawful and often appropriate — small works, emergencies,
+proprietary supply. It is flagged because open competition was not used, which
+is a fact worth knowing about any contract, and because the method is a
+well-known vehicle for favouritism when it is chosen for the wrong reasons.
+Whether a given one is legitimate cannot be told from the portal's data, and
+this file does not pretend otherwise. Measured on this archive: the median
+Limited tender is around Rs 7.9 lakh, but the largest is Rs 11 crore, and 44 of
+them *also* carry a short bidding window — the compound cases are where a
+reader should start.
+
+Flags are stored in ``redflags`` with the time we first detected them, so each
+tender's page can show a persistent warning with the incident details.
 """
 
 from __future__ import annotations
@@ -24,6 +42,20 @@ log = logging.getLogger("redflags")
 THRESHOLD_HOURS = 24.0
 HIGH_HOURS = 6.0
 REASON = "short_bid_window"
+REASON_LIMITED = "limited_tender"
+
+# The portal's own tender_type values that mean "not open to all comers".
+# "Single" (single-source) and "Global Tenders" are deliberately NOT here:
+# single-source is a different and rarer thing that deserves its own signal
+# rather than being folded into this one, and a global tender is *wider* than
+# an open tender, not narrower.
+LIMITED_TYPES = ("Limited", "Open Limited", "Closed Limited")
+
+
+def limited_tender(tender_type: str | None) -> str | None:
+    """The tender's restricted-bidding type, or None if it was open to all."""
+    tt = (tender_type or "").strip()
+    return tt if tt in LIMITED_TYPES else None
 
 
 def _window_hours(published: str | None, closing: str | None) -> float | None:
@@ -137,14 +169,64 @@ def check_and_flag(conn, tender_id: str, published: str | None, closing: str | N
     return True
 
 
+def check_limited_and_flag(conn, tender_id: str, tender_type: str | None,
+                           detected_at: str | None = None) -> bool:
+    """Record that a tender was restricted to invited bidders. Idempotent.
+
+    Severity is ``medium`` and stays there. The short-window flag earns ``high``
+    when a window is so short that no genuine bid was possible; nothing about a
+    Limited tender on its own justifies that, because the method is lawful and
+    frequently the right one. A reader is pointed at the compound cases — the
+    ones that are *also* short-window — by both flags appearing together, not by
+    this one shouting.
+
+    Self-correcting in the same way as the short-window flag: a tender whose
+    type is later corrected to an open one has its flag removed rather than
+    left standing.
+    """
+    kind = limited_tender(tender_type)
+    if kind is None:
+        if tender_type:
+            cur = conn.execute("DELETE FROM redflags WHERE tender_id=? AND reason=?",
+                               (tender_id, REASON_LIMITED))
+            if cur.rowcount:
+                log.info("retracted %s for %s: type is %r, open to all bidders",
+                         REASON_LIMITED, tender_id, tender_type)
+        return False
+    detail = (f"Bidding was restricted — the department ran this as a "
+              f"“{kind}” tender, so only firms it invited could take part. "
+              f"Limited tendering is lawful and often appropriate, but it removes "
+              f"open competition, and the portal does not publish the reason.")
+    conn.execute(
+        """
+        INSERT INTO redflags (tender_id, reason, severity, window_hours,
+            published_at, closing_at, detail, detected_at)
+        VALUES (?, ?, 'medium', NULL, NULL, NULL, ?, ?)
+        ON CONFLICT(tender_id, reason) DO UPDATE SET
+            severity=excluded.severity, detail=excluded.detail
+        """,
+        (tender_id, REASON_LIMITED, detail, detected_at or now_iso()),
+    )
+    return True
+
+
 def get_flags(conn, tender_id: str) -> list[dict]:
     return [dict(r) for r in conn.execute(
         "SELECT * FROM redflags WHERE tender_id=? ORDER BY detected_at", (tender_id,))]
 
 
 def scan_all(db_path=None) -> dict:
-    """Backfill: flag every tender with a short bidding window. Uses the tender's
-    last_updated_at as the detection time (when we last saw it)."""
+    """Backfill every signal over the whole archive.
+
+    Uses each tender's ``last_updated_at`` as the detection time, so a
+    backfilled flag claims to have been noticed when the archive last saw the
+    tender rather than when this scan happened to run.
+
+    The two signals are scanned over different row sets on purpose: a short
+    window can only be judged where both dates exist, whereas restricted
+    bidding is legible from ``tender_type`` alone and therefore reaches tenders
+    that were never detailed.
+    """
     cfg = load_config()
     db_path = db_path or cfg.db_path
     init_db(db_path)
@@ -166,7 +248,21 @@ def scan_all(db_path=None) -> dict:
                               raw=raw if isinstance(raw, dict) else {}):
                 flagged += 1
         conn.commit()
+
+        limited_rows = conn.execute(
+            "SELECT tender_id, tender_type, last_updated_at FROM tenders"
+            " WHERE tender_type IS NOT NULL"
+        ).fetchall()
+        limited = 0
+        for r in limited_rows:
+            if check_limited_and_flag(conn, r["tender_id"], r["tender_type"],
+                                      r["last_updated_at"]):
+                limited += 1
+        conn.commit()
+
         total = conn.execute("SELECT count(*) FROM redflags").fetchone()[0]
     finally:
         conn.close()
-    return {"newly_checked": len(rows), "flagged_now": flagged, "total_flags": total}
+    return {"windows_checked": len(rows), "short_windows_flagged": flagged,
+            "types_checked": len(limited_rows), "limited_flagged": limited,
+            "total_flags": total}

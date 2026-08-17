@@ -5,9 +5,15 @@
 {% block content %}
 
 <section class="hero">
-  <h1>{{ icon('flag') }} History — short-window tenders</h1>
-  <p class="lead">Past tenders whose time from publication to bid-closing was under
-     24 hours — already closed. A short window can be a sign of a pre-arranged bid.</p>
+  <h1>{{ icon('flag') }} History — suspicious tenders</h1>
+  {# Two signals, stated at different strengths on purpose. A short window is an
+     accusation; a limited tender is a fact about the process that the reader
+     should weigh themselves. Overstating the second would make the first
+     easier to dismiss. #}
+  <p class="lead">Closed tenders carrying at least one warning sign: a bidding
+     window under 24 hours, which leaves no time for a genuine competitor to
+     prepare; or bidding restricted to firms the department invited, which is
+     lawful and often appropriate but removes open competition.</p>
 </section>
 
 <section>
@@ -18,7 +24,8 @@
     {% for s in rows %}
     <li class="card card-flag">
       <a class="card-title" href="/tender/{{ s.tender_id }}">{{ s.short_name or headline(s) }}</a>
-      <span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>
+      {% if 'short_window' in s.flags %}<span class="window-badge">{{ "%.1f"|format(s.hrs) }} h window</span>{% endif %}
+      {% if 'limited' in s.flags %}<span class="limited-badge">Invited bidders only</span>{% endif %}
       {{ org_chips(s.organisation_chain) }}
       <div class="card-meta">
         {% if s.tender_value_num %}<span class="val">{{ s.tender_value_num|inr }}</span>{% endif %}
@@ -30,6 +37,6 @@
     </li>
     {% endfor %}
   </ul>
-  {% else %}<p class="empty">No past short-window tenders recorded yet.</p>{% endif %}
+  {% else %}<p class="empty">No past suspicious tenders recorded yet.</p>{% endif %}
 </section>
 {% endblock %}

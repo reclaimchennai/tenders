@@ -69,6 +69,22 @@
     {% if t.closing_date %}<span class="badge">{{ closing_line(t.closing_date) }}</span>{% endif %}
   </div>
 
+  {# Restricted bidding. Deliberately a calmer block than the short-window one
+     below: it states what the department did and why that matters, and stops
+     short of calling it wrongdoing, because limited tendering is lawful and the
+     portal never publishes the reason it was chosen. Overstating this would
+     make the stronger flag beneath it easier to wave away. #}
+  {% if limited_kind %}
+  <div class="redflag redflag-soft">
+    <p class="redflag-title">{{ icon('alert') }} Restricted bidding — invited bidders only</p>
+    <p>The department ran this as a <b>{{ limited_kind }}</b> tender, so only firms
+       it invited could bid. That is lawful and often appropriate — small works,
+       emergencies, proprietary supply — but it removes open competition, and the
+       portal does not publish the reason.
+       <a href="/history">See other restricted tenders</a>.</p>
+  </div>
+  {% endif %}
+
   {% if flag_hours %}
   <div class="redflag">
     <p class="redflag-title">{{ icon('alert') }} Red flag — abnormally short bidding window</p>

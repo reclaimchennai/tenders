@@ -1,4 +1,4 @@
-"""The short-bidding-window flag must not accuse a department wrongly.
+"""Neither flag may accuse a department wrongly.
 
 This archive's only asset is that its accusations survive scrutiny. A tender
 page that says "no genuine bidder can prepare in that time" about a tender that
@@ -19,7 +19,15 @@ import sqlite3
 import pytest
 
 from tenders.db import init_db
-from tenders.redflags import REASON, available_from, check_and_flag, short_window
+from tenders.redflags import (
+    REASON,
+    REASON_LIMITED,
+    available_from,
+    check_and_flag,
+    check_limited_and_flag,
+    limited_tender,
+    short_window,
+)
 
 
 # The real tender, as stored.
@@ -109,3 +117,75 @@ def test_a_listing_only_recheck_does_not_clear_a_confirmed_flag(conn):
     # The newest-first poll re-sees this tender every few minutes with no raw.
     check_and_flag(conn, "T1", PUBLISHED, CLOSING)
     assert _flags(conn) == 1
+
+
+# ---------------------------------------------------------------------------
+# Restricted bidding
+#
+# This signal is not an accusation, and the tests are written to keep it from
+# quietly becoming one: it must fire on the portal's Limited family and on
+# nothing else, and it must retract itself when a tender turns out to be open.
+# ---------------------------------------------------------------------------
+
+def test_the_limited_family_is_flagged_and_nothing_else():
+    for t in ("Limited", "Open Limited", "Closed Limited"):
+        assert limited_tender(t) == t
+    # Open is the norm. "Single" is single-source — a different, rarer thing
+    # that deserves its own signal rather than being folded into this one — and
+    # a global tender is *wider* than an open one, not narrower.
+    for t in ("Open Tender", "Single", "Global Tenders", "Auction", "", None):
+        assert limited_tender(t) is None
+
+
+def test_flagging_records_the_type_and_stays_medium(conn):
+    _add(conn, "LTD")
+    conn.execute("UPDATE tenders SET tender_type='Limited' WHERE tender_id='LTD'")
+    assert check_limited_and_flag(conn, "LTD", "Limited") is True
+    row = conn.execute("SELECT * FROM redflags WHERE tender_id='LTD'").fetchone()
+    assert row["reason"] == REASON_LIMITED
+    # Never "high": nothing about a lawful procurement method on its own earns
+    # the severity reserved for a window no genuine bidder could have met.
+    assert row["severity"] == "medium"
+    assert "Limited" in row["detail"]
+    assert row["window_hours"] is None
+
+
+def test_an_open_tender_is_not_flagged(conn):
+    _add(conn, "OPEN")
+    assert check_limited_and_flag(conn, "OPEN", "Open Tender") is False
+    assert _flags(conn, "OPEN") == 0
+
+
+def test_a_retyped_tender_has_its_flag_retracted(conn):
+    """Self-correcting, like the short-window flag."""
+    _add(conn, "T")
+    check_limited_and_flag(conn, "T", "Limited")
+    assert conn.execute("SELECT count(*) FROM redflags WHERE tender_id='T'"
+                        " AND reason=?", (REASON_LIMITED,)).fetchone()[0] == 1
+    check_limited_and_flag(conn, "T", "Open Tender")
+    assert conn.execute("SELECT count(*) FROM redflags WHERE tender_id='T'"
+                        " AND reason=?", (REASON_LIMITED,)).fetchone()[0] == 0
+
+
+def test_an_unknown_type_does_not_retract(conn):
+    """Absence of a type is not evidence the tender was open.
+
+    A listing row carries no tender_type. Treating that as "open" would clear a
+    flag the detail page established, the same failure the short-window flag
+    already guards against.
+    """
+    _add(conn, "T")
+    check_limited_and_flag(conn, "T", "Limited")
+    check_limited_and_flag(conn, "T", None)
+    assert conn.execute("SELECT count(*) FROM redflags WHERE tender_id='T'"
+                        " AND reason=?", (REASON_LIMITED,)).fetchone()[0] == 1
+
+
+def test_the_two_signals_coexist_on_one_tender(conn):
+    """44 real tenders carry both; neither may overwrite the other."""
+    _add(conn, "BOTH")
+    check_and_flag(conn, "BOTH", PUBLISHED, CLOSING)          # short window
+    check_limited_and_flag(conn, "BOTH", "Limited")           # restricted
+    reasons = {r[0] for r in conn.execute(
+        "SELECT reason FROM redflags WHERE tender_id='BOTH'")}
+    assert reasons == {REASON, REASON_LIMITED}

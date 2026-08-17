@@ -11,7 +11,7 @@ from __future__ import annotations
 import json
 from datetime import date, datetime, timedelta, timezone
 
-from ..redflags import short_window
+from ..redflags import LIMITED_TYPES, short_window
 from ..shortnames import headline
 from .dates import fmt_date, fmt_datetime, ist as _ist, relative_short
 
@@ -134,8 +134,20 @@ def dashboard_data(conn) -> dict:
         "WHERE closing_date BETWEEN datetime('now') AND datetime('now','+6 days') GROUP BY d",
         today, 7)
 
-    suspicious = _suspicious_rows(conn, "closing_date >= datetime('now','-2 days')",
-                                  "hrs ASC", 12)
+    # Both signals, over the same recent window. The count on the card is the
+    # number of distinct tenders carrying either, not the sum of two lists — a
+    # tender that is short-window *and* limited is one tender to look at.
+    recent = "closing_date >= datetime('now','-2 days')"
+    # The list is capped for display; the count is not. len(list) was the count
+    # before, which was accurate only while the number happened to be under the
+    # cap — once restricted bidding joined the signal it would have read "12"
+    # essentially forever, understating a headline figure people quote.
+    suspicious = _merge_flagged(
+        _suspicious_rows(conn, recent, "hrs ASC", 12),
+        _limited_rows(conn, f"closing_date IS NOT NULL AND {recent}",
+                      "closing_date ASC", 12),
+        12)
+    suspicious_count = _flagged_count(conn, recent)
 
     return {
         "value_today": _fmt_inr(value_today), "pub_today": pub_today,
@@ -143,7 +155,7 @@ def dashboard_data(conn) -> dict:
         "exp_today": exp_today, "exp_tomorrow": exp_tomorrow, "exp_7d": exp_7d,
         "published_chart": _chart(published),
         "closing_chart": _chart(closing),
-        "suspicious": suspicious, "suspicious_count": len(suspicious),
+        "suspicious": suspicious, "suspicious_count": suspicious_count,
     }
 
 
@@ -276,6 +288,39 @@ def award_panel(tender: dict, docs: list[dict] | None = None) -> dict | None:
 _SUSPICIOUS_OVERFETCH = 10
 
 
+_SUSPICIOUS_COLUMNS = """
+        SELECT tender_id, title, short_name, organisation_chain, location,
+               tender_value_num, tender_type, published_date, closing_date,
+               cancelled_at, awarded_at, awarded_to, award_value_num,
+               work_description, product_category, tender_category, raw_json
+"""
+
+
+def _limited_rows(conn, when: str, order: str, limit: int) -> list[dict]:
+    """Tenders restricted to invited bidders.
+
+    Judged straight from ``tender_type``, which needs no interpretation — unlike
+    the bidding window, there is nothing here that a later detail page can
+    disprove. See ``redflags.limited_tender`` for why "Single" and "Global
+    Tenders" are excluded.
+    """
+    marks = ",".join("?" * len(LIMITED_TYPES))
+    rows = conn.execute(
+        f"""{_SUSPICIOUS_COLUMNS}
+        FROM tenders
+        WHERE tender_type IN ({marks}) AND {when}
+        ORDER BY {order} LIMIT ?
+        """, (*LIMITED_TYPES, limit)).fetchall()
+    out = []
+    for r in rows:
+        row = dict(r)
+        row.pop("raw_json", None)
+        row["hrs"] = None
+        row["flag"] = "limited"
+        out.append(row)
+    return out
+
+
 def _suspicious_rows(conn, when: str, order: str, limit: int) -> list[dict]:
     """Tenders whose *effective* bidding window was under 24 hours.
 
@@ -322,6 +367,7 @@ def _suspicious_rows(conn, when: str, order: str, limit: int) -> list[dict]:
             continue
         # Show the window the bidder actually had, not the published_date one.
         row["hrs"] = hrs
+        row["flag"] = "short_window"
         out.append(row)
         if len(out) >= limit:
             break
@@ -329,9 +375,57 @@ def _suspicious_rows(conn, when: str, order: str, limit: int) -> list[dict]:
 
 
 def suspicious_history(conn, limit: int = 100) -> list[dict]:
-    """Past short-bidding-window tenders that have already closed."""
-    return _suspicious_rows(conn, "closing_date < datetime('now')",
+    """Closed tenders carrying either signal, newest first.
+
+    The two queries are run separately and merged rather than UNIONed, because
+    the short-window one cannot be decided in SQL at all (see
+    ``_suspicious_rows``) and has to be filtered in Python. A tender carrying
+    both — 44 of them in this archive — appears once, holding both marks, since
+    that combination is the most worth reading and splitting it across two rows
+    would bury it.
+    """
+    short = _suspicious_rows(conn, "closing_date < datetime('now')",
+                             "closing_date DESC", limit)
+    limited = _limited_rows(conn,
+                            "closing_date IS NOT NULL AND closing_date < datetime('now')",
                             "closing_date DESC", limit)
+    return _merge_flagged(short, limited, limit)
+
+
+def _flagged_count(conn, when: str) -> int:
+    """Distinct tenders carrying either signal in `when` — uncapped.
+
+    The short-window half still has to be decided in Python (see
+    ``_suspicious_rows``), so it is counted by running that filter over the
+    whole candidate set rather than a bare SQL count. The candidate set is the
+    cheap published_date pre-filter, which is small.
+    """
+    short = {r["tender_id"] for r in _suspicious_rows(conn, when, "hrs ASC", 10_000)}
+    marks = ",".join("?" * len(LIMITED_TYPES))
+    limited = {r[0] for r in conn.execute(
+        f"SELECT tender_id FROM tenders WHERE tender_type IN ({marks})"
+        f" AND closing_date IS NOT NULL AND {when}", LIMITED_TYPES)}
+    return len(short | limited)
+
+
+def _merge_flagged(short: list[dict], limited: list[dict], limit: int) -> list[dict]:
+    """One row per tender, carrying every signal it triggered, newest first."""
+    by_id: dict[str, dict] = {}
+    for row in (*short, *limited):
+        tid = row["tender_id"]
+        if tid in by_id:
+            existing = by_id[tid]
+            existing["flags"] = sorted(set(existing["flags"]) | {row["flag"]})
+            # Keep the measured window if either copy has one.
+            existing["hrs"] = existing.get("hrs") or row.get("hrs")
+        else:
+            row = dict(row)
+            row["flags"] = [row.pop("flag")]
+            by_id[tid] = row
+    out = sorted(by_id.values(),
+                 key=lambda r: (r.get("closing_date") or "", r["tender_id"]),
+                 reverse=True)
+    return out[:limit]
 
 
 # SQLite's datetime('now') is UTC; every date in this table is naive IST
